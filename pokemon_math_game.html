@@ -559,6 +559,8 @@ function clickTile(tile,item){
     badge.className='tbadge ng';badge.textContent='-1';
     score=Math.max(0,score-1);
     roundDelta--;
+    // 오답은 부화점에서도 1점 차감 (hub.js)
+    if(window.Hub) Hub.addScore('pokemon',-1);
   }
   tile.appendChild(badge);
   document.getElementById('g-score').textContent=score;

@@ -116,15 +116,16 @@
   function gameScore(id){ return state.scores[id]||0; }
   function caughtCount(){ return Object.keys(state.caught).length; }
 
-  /* 게임에서 점수 적립. {total(이 게임 누적), available, newEggs(새로 부화 가능해진 수)} 반환 */
+  /* 게임에서 점수 적립/차감(n 음수 가능). {total(이 게임 누적), available, newEggs} 반환.
+     게임별 점수는 0 미만으로 내려가지 않는다. */
   function addScore(gameId, n){
-    n=Math.max(0, Math.floor(n||0));
+    n=Math.floor(n||0);
     if(!n) return {total:gameScore(gameId), available:available(), newEggs:0};
     const before=available();
-    state.scores[gameId]=(state.scores[gameId]||0)+n;
+    state.scores[gameId]=Math.max(0,(state.scores[gameId]||0)+n);
     save();
     const after=available();
-    const newEggs=Math.floor(after/HATCH_COST)-Math.floor(before/HATCH_COST);
+    const newEggs=Math.max(0, Math.floor(after/HATCH_COST)-Math.floor(before/HATCH_COST));
     return {total:state.scores[gameId], available:after, newEggs};
   }
   // 구버전 호환

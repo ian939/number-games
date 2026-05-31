@@ -442,39 +442,79 @@
     });
   }
 
-  // ----- Stage 3 : guided 3-step -----
+  // ----- Stage 2 : 공을 눌러 옮겨 10을 만들기 → 자연스럽게 10 + rest -----
   function renderStep3(){
     const {a,b,need,rest,sum}=current;
     const frames=$("#framesEl"); frames.innerHTML="";
     const fa=document.createElement("div"); fa.className="frame-wrap";
     const fb=document.createElement("div"); fb.className="frame-wrap";
 
-    if(stepPhase===0){
-      // 시작: 8 | 4
-      fa.innerHTML=`<div class="frame-label">${a}</div>`;
-      const frameA=buildSpecFrame(spread("a",a)); frameA.id="frameA"; fa.appendChild(frameA);
-      fb.innerHTML=`<div class="frame-label">${b}</div>`;
-      const frameB=buildSpecFrame(spread("b",b)); frameB.id="frameB"; fb.appendChild(frameB);
-      frames.appendChild(fa); frames.appendChild(fb);
+    fa.innerHTML=`<div class="frame-label" id="labA">${a}</div>`;
+    const frameA=buildSpecFrame(spread("a",a)); frameA.id="frameA"; fa.appendChild(frameA);
+    fb.innerHTML=`<div class="frame-label" id="labB">${b}</div>`;
+    const frameB=buildSpecFrame(spread("b",b)); frameB.id="frameB"; fb.appendChild(frameB);
+    frames.appendChild(fa); frames.appendChild(fb);
 
-      $("#questionEl").innerHTML = `<b>${a} + ${b}</b> 를 풀어보자!`;
-      $("#stepHint").innerHTML = `먼저 <b>${a}</b>을(를) 10으로 만들자.<br>몇 개가 더 필요할까?`;
-      renderChoices(makeChoices(need,0,10), need);
+    $("#questionEl").innerHTML = `<b>${a} + ${b}</b> 는?`;
+    $("#stepHint").innerHTML = `오른쪽 공을 눌러 <b>왼쪽을 10</b>으로 채워줘!`;
+    $("#choicesEl").innerHTML = "";
+
+    let started=0, moved=0;
+    [...frameB.children].forEach(cell=>{
+      if(cell.firstChild){
+        cell.style.cursor="pointer";
+        cell.onclick=()=>moveOne(cell);
+      }
+    });
+
+    function moveOne(srcCell){
+      if(started>=need || !srcCell.firstChild) return;
+      const emptyA=[...frameA.children].filter(c=>!c.firstChild && !c.dataset.reserved);
+      if(!emptyA.length) return;
+      const dstCell=emptyA[0];
+      started++;
+      dstCell.dataset.reserved="1";
+      srcCell.onclick=null; srcCell.style.cursor="default";
+      flyDot(srcCell, dstCell, ()=>{
+        delete dstCell.dataset.reserved;
+        moved++;
+        $("#labA").textContent = a+moved;
+        $("#labB").textContent = b-moved;
+        if(moved>=need) onFilled();
+      });
     }
-    else {
-      // 떼어준 뒤: A = a(노랑) + need(빨강) = 가득 / B = rest(파랑) + need(점선 빈자리)
-      const specA=[]; for(let i=0;i<10;i++) specA.push(i<a?"a":(i<a+need?"g":"empty"));
-      const specB=[]; for(let i=0;i<10;i++) specB.push(i<rest?"b":(i<b?"ghost":"empty"));
-      fa.innerHTML=`<div class="frame-label">${a} <span class="moved">+ ${need}</span></div>`;
-      const frameA=buildSpecFrame(specA); frameA.id="frameA"; fa.appendChild(frameA);
-      fb.innerHTML=`<div class="frame-label">${b} <span class="moved">− ${need}</span></div>`;
-      const frameB=buildSpecFrame(specB); frameB.id="frameB"; fb.appendChild(frameB);
-      frames.appendChild(fa); frames.appendChild(fb);
 
+    function onFilled(){
+      [...frameB.children].forEach(c=>{ c.onclick=null; c.style.cursor="default"; });
+      $("#labA").innerHTML = `<b style="color:var(--sky-d)">10</b>`;
+      $("#labB").innerHTML = `<b style="color:var(--coral-d)">${rest}</b>`;
       $("#questionEl").innerHTML = `<b>10 + ${rest}</b> 는?`;
-      $("#stepHint").innerHTML = `<span class="moved">${a} + ${need} = 10</span> 완성! &nbsp;·&nbsp; ${b} − ${need} = ${rest}`;
+      $("#stepHint").innerHTML = `왼쪽 <b>10</b>, 오른쪽 <b>${rest}</b> → 이제 <b>10 + ${rest}</b>!`;
       renderChoices(makeChoices(sum,10,18), sum);
     }
+  }
+
+  // 공 하나를 src칸 → dst칸으로 날려보내는 애니메이션
+  function flyDot(srcCell, dstCell, done){
+    const s=srcCell.getBoundingClientRect();
+    if(srcCell.firstChild){
+      srcCell.firstChild.style.transition="opacity .15s";
+      srcCell.firstChild.style.opacity="0";
+      setTimeout(()=>{ if(srcCell.firstChild) srcCell.removeChild(srcCell.firstChild); },150);
+    }
+    const fly=document.createElement("div"); fly.className="flyer";
+    fly.style.left=s.left+4+"px"; fly.style.top=s.top+4+"px";
+    document.body.appendChild(fly);
+    requestAnimationFrame(()=>{
+      const d=dstCell.getBoundingClientRect();
+      fly.style.transition="left .5s cubic-bezier(.3,-0.2,.4,1.3),top .5s cubic-bezier(.3,-0.2,.4,1.3)";
+      fly.style.left=d.left+4+"px"; fly.style.top=d.top+4+"px";
+    });
+    setTimeout(()=>{
+      fly.remove();
+      if(!dstCell.firstChild){ const nd=document.createElement("div"); nd.className="dot g"; dstCell.appendChild(nd); }
+      if(done) done();
+    },520);
   }
 
   // ----- Stage 4 & 5 : 힌트 보기 → 자리값 분해 (십은 위로, 일은 아래로 점선 연결) -----
@@ -571,13 +611,6 @@
     [...container.children].forEach(c=>c.style.pointerEvents="none");
     if(correct){
       btn.classList.add("correct");
-      if(current.type===3 && stepPhase===0){
-        positiveSmall();
-        hopDots(current.need);
-        setTimeout(()=>{ stepPhase=1; lock=false; renderStep3(); }, 950);
-        return;
-      }
-      // full-correct (final answer of any stage)
       onCorrect();
     } else {
       btn.classList.add("wrong");
