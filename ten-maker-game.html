@@ -486,10 +486,10 @@
 
     function onFilled(){
       [...frameB.children].forEach(c=>{ c.onclick=null; c.style.cursor="default"; });
+      // 위쪽 질문(7 + 6 는?)은 그대로 유지하고, 아래 프레임 라벨만 10 / rest 로 표시
       $("#labA").innerHTML = `<b style="color:var(--sky-d)">10</b>`;
       $("#labB").innerHTML = `<b style="color:var(--coral-d)">${rest}</b>`;
-      $("#questionEl").innerHTML = `<b>10 + ${rest}</b> 는?`;
-      $("#stepHint").innerHTML = `왼쪽 <b>10</b>, 오른쪽 <b>${rest}</b> → 이제 <b>10 + ${rest}</b>!`;
+      $("#stepHint").innerHTML = `왼쪽 <b>10</b>, 오른쪽 <b>${rest}</b> → <b>10 + ${rest}</b> 와 같아요!`;
       renderChoices(makeChoices(sum,10,18), sum);
     }
   }
