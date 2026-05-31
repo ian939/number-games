@@ -709,9 +709,36 @@
     .count-label { font-size: 0.95rem; padding: 3px 8px; margin-left: 8px; gap: 4px; }
     .btn { font-size: 1rem; padding: 10px 16px; }
   }
+
+  /* 게임 목록(index)로 돌아가기 버튼 */
+  .home-btn {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1000;
+    font-family: 'Jua', sans-serif;
+    font-size: 1rem;
+    text-decoration: none;
+    color: var(--ink);
+    background: var(--paper);
+    border: 3px solid var(--block-ten);
+    border-radius: 999px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .home-btn:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+  @media (max-width: 480px) {
+    .home-btn { font-size: 0.85rem; padding: 6px 12px; top: 10px; left: 10px; }
+  }
 </style>
 </head>
 <body>
+
+<a href="index.html" class="home-btn" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
 
 <div class="cloud cloud-1"></div>
 <div class="cloud cloud-2"></div>
