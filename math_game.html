@@ -818,6 +818,7 @@
   </div>
 </div>
 
+<script src="hub.js"></script>
 <script>
   // 업그레이드 임계값
   const UPGRADE_THRESHOLD = 200;
@@ -1270,8 +1271,14 @@
       updateStars();
       if (earned > 0) showStarPop(earned);
 
+      // 공용 알 적립: 별 10개마다 알 1개 (hub.js)
+      let eggMsg = "";
+      if (earned > 0 && window.Hub) {
+        const r = Hub.addStars('block', earned);
+        if (r.gained) eggMsg = ` <b style="color:#ff8c3b">🥚 알 +${r.gained}!</b>`;
+      }
       if (earned > 0) {
-        el.feedback.innerHTML = `정답이야! 🎉 별 <b>${earned}개</b> 획득!`;
+        el.feedback.innerHTML = `정답이야! 🎉 별 <b>${earned}개</b> 획득!` + eggMsg;
       } else {
         el.feedback.innerHTML = `정답이야! 🎉`;
       }

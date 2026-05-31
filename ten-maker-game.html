@@ -266,6 +266,7 @@
   </div>
 </div>
 
+<script src="hub.js"></script>
 <script>
 (function(){
   "use strict";
@@ -584,8 +585,11 @@
     const gain = 1;
     stars += gain; roundStars += gain;
     updateHud();
+    // 공용 알 적립: 별 10개마다 알 1개 (hub.js)
+    let eggMsg = "";
+    if (window.Hub){ const r = Hub.addStars('ten', gain); if (r.gained) eggMsg = ` <b style="color:#ff8c3b">🥚 알 +${r.gained}!</b>`; }
     const faces=["😄","🥳","🤩","😎","🦊"];
-    $("#feedbackEl").innerHTML = `<span class="face">${pick(faces)}</span> 정답! +${gain}⭐`;
+    $("#feedbackEl").innerHTML = `<span class="face">${pick(faces)}</span> 정답! +${gain}⭐` + eggMsg;
     burstConfetti(24);
     qIndex++;
     $("#progBar").style.width=(qIndex/QPER*100)+"%";
