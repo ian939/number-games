@@ -74,6 +74,9 @@ html,body{width:100%;min-height:100%;font-family:'Noto Sans KR',sans-serif;backg
 .target-circle{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Jua',sans-serif;font-size:48px;box-shadow:0 4px 20px rgba(0,0,0,.3);}
 .target-label{font-size:11px;color:var(--text-muted);line-height:1.7;}
 .target-label strong{color:var(--text);font-size:12px;}
+.found-counter{font-family:'Jua',sans-serif;font-size:15px;color:var(--yellow);background:rgba(255,203,5,.12);border:1.5px solid rgba(255,203,5,.4);border-radius:999px;padding:5px 16px;min-height:30px;display:flex;align-items:center;gap:6px;transition:transform .15s;}
+.found-counter.pop{transform:scale(1.12);}
+.found-counter.done{color:var(--ok);background:rgba(76,222,122,.15);border-color:rgba(76,222,122,.5);}
 .round-delta{font-family:'Jua',sans-serif;font-size:19px;min-height:24px;}
 .next-btn{width:100%;max-width:110px;padding:8px 0;border-radius:10px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);color:var(--text);font-size:13px;font-family:'Jua',sans-serif;cursor:pointer;transition:background .15s;}
 .next-btn:hover{background:rgba(255,255,255,.14);}
@@ -191,6 +194,7 @@ body:has(#title-screen.active) .home-btn{display:inline-block;}
     <div class="card-center">
       <div class="target-circle" id="target-circle"><span id="tnum">?</span></div>
       <div class="target-label" id="target-label"></div>
+      <div class="found-counter" id="found-counter"></div>
       <div class="round-delta" id="round-delta"></div>
       <button class="next-btn" id="next-btn">다음 →</button>
     </div>
@@ -268,6 +272,7 @@ const CIRCLE_STYLES=[
 /* ══ STATE ══ */
 let totalScore=0,eggs=0,caught={},prevScreen='title';
 let gameMode='add',score=0,qIndex=0,history=[],currentQ=null,roundDelta=0;
+let neededCorrect=0,foundCorrect=0,qToken=0;
 const TOTAL=10;
 
 function save(){try{localStorage.setItem('pmg2',JSON.stringify({totalScore,eggs,caught}));}catch(e){}}
@@ -310,7 +315,7 @@ function makeAddQ(){
     if(!seen.has(k)){seen.add(k);allC.push({a,b,correct:true});}
   }
   shuffle(allC);
-  const correct=allC.slice(0,Math.min(10,allC.length));
+  const correct=allC.slice(0,Math.min(rnd(3,6),allC.length));
   // wrong pairs: a+b!=t
   const wrongSet=new Set(correct.map(p=>p.a+'+'+p.b+'/'+(p.a+p.b)));
   const wrongs=[];
@@ -344,7 +349,7 @@ function makeSubQ(){
     if(!seen.has(k)){seen.add(k);allC.push({a:minuend,b:s,result:r,correct:true});}
   }
   shuffle(allC);
-  const correct=allC.slice(0,Math.min(10,allC.length));
+  const correct=allC.slice(0,Math.min(rnd(3,6),allC.length));
   // wrong: different minuend OR wrong subtrahend making different result
   const wrongSet=new Set(correct.map(p=>p.a+'-'+p.b));
   const wrongs=[];
@@ -405,9 +410,14 @@ function renderQuestion(q){
   const fb=document.getElementById('feedback-bar');
   fb.className='feedback-bar fb-none';fb.textContent=' ';
   roundDelta=0;
+  // found-counter — 이번 문제의 정답 개수 표시
+  qToken++;
+  neededCorrect=q.items.filter(it=>it.correct).length;
+  foundCorrect=0;
+  updateFoundCounter();
   // next btn
   const nb=document.getElementById('next-btn');
-  nb.textContent='다음 →';
+  nb.textContent='건너뛰기 →';
   nb.onclick=handleNext;
   // tiles
   const left=document.getElementById('left-col');
@@ -437,6 +447,8 @@ function clickTile(tile,item){
     badge.className='tbadge ok';badge.textContent='+1';
     score++;roundDelta++;
     totalScore++;
+    foundCorrect++;
+    updateFoundCounter();
     const prevE=Math.floor((totalScore-1)/10);
     const newE=Math.floor(totalScore/10);
     if(newE>prevE){eggs++;showToast('🥚 알이 하나 생겼어요!');save();}
@@ -455,6 +467,34 @@ function clickTile(tile,item){
   const rd=document.getElementById('round-delta');
   rd.textContent='이번 문제: '+(roundDelta>=0?'+':'')+roundDelta+'점';
   rd.style.color=roundDelta>0?'#4cde7a':roundDelta<0?'#ff5a5a':'var(--text-muted)';
+  // 이번 문제의 정답을 모두 찾으면 자동으로 다음 문제로
+  if(item.correct&&foundCorrect>=neededCorrect&&neededCorrect>0){
+    autoAdvance();
+  }
+}
+
+function updateFoundCounter(){
+  const el=document.getElementById('found-counter');
+  if(!el)return;
+  const done=foundCorrect>=neededCorrect&&neededCorrect>0;
+  el.classList.toggle('done',done);
+  el.innerHTML=done
+    ? '🎉 정답 '+neededCorrect+'개 모두 찾았어요!'
+    : '✅ 정답 <strong>'+foundCorrect+'</strong> / '+neededCorrect+'개 찾기';
+  // 살짝 튀는 애니메이션
+  el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');
+}
+
+function autoAdvance(){
+  const token=qToken;
+  // 남은 타일 클릭 잠그기 + 안내
+  document.querySelectorAll('.eq-tile:not(.locked)').forEach(t=>t.classList.add('locked'));
+  const fb=document.getElementById('feedback-bar');
+  fb.className='feedback-bar fb-ok';
+  fb.textContent=(qIndex+1>=TOTAL)?'정답을 모두 찾았어요! 결과를 볼게요 🎉':'정답을 모두 찾았어요! 다음 문제로 →';
+  const nb=document.getElementById('next-btn');
+  nb.textContent='다음 →';
+  setTimeout(()=>{ if(token===qToken) handleNext(); },1100);
 }
 
 function handleNext(){
@@ -478,6 +518,7 @@ function showRoundEnd(){
   document.getElementById('tnum').style.color='#4cde7a';
   document.getElementById('tnum').textContent=score;
   document.getElementById('target-label').innerHTML='<strong>10문제 완료!</strong><br>수고했어요 🎉';
+  const fc=document.getElementById('found-counter');fc.textContent='';fc.classList.remove('done','pop');
   document.getElementById('round-delta').textContent='';
   document.getElementById('left-col').innerHTML='';
   document.getElementById('right-col').innerHTML='';
