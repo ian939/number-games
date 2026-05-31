@@ -145,6 +145,27 @@ html,body{width:100%;min-height:100%;font-family:'Noto Sans KR',sans-serif;backg
 body:has(#title-screen.active) .home-btn{display:inline-block;}
 .home-btn:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 6px 18px rgba(0,0,0,.6);}
 @media (max-width:480px){.home-btn{font-size:12px;padding:5px 11px;top:8px;left:8px;}}
+
+/* ── 포켓몬 상세보기 모달 ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:2000;padding:18px;}
+.modal-overlay.show{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-card{background:linear-gradient(160deg,#1e3a6e,#0f3460);border:2px solid var(--yellow);border-radius:22px;padding:24px 20px 20px;width:100%;max-width:340px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto;}
+.modal-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:15px;cursor:pointer;line-height:1;}
+.modal-close:hover{background:rgba(255,255,255,.3);}
+.dm-sprite{width:130px;height:130px;image-rendering:pixelated;filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));}
+.dm-genus{font-size:13px;color:var(--text-muted);margin-top:2px;}
+.dm-types{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0 6px;min-height:30px;}
+.type-badge{padding:5px 16px;border-radius:999px;font-size:13px;font-weight:700;color:#fff;font-family:'Jua',sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.dm-desc{font-size:13.5px;line-height:1.75;color:var(--text);background:rgba(0,0,0,.22);border-radius:12px;padding:12px 14px;margin-top:10px;min-height:42px;}
+.dm-desc.loading{color:var(--text-muted);font-style:italic;}
+.dm-actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.dm-actions button{padding:10px 18px;border-radius:12px;border:none;font-family:'Jua',sans-serif;font-size:14px;cursor:pointer;background:rgba(255,255,255,.14);color:#fff;}
+.dm-actions button:hover{background:rgba(255,255,255,.26);}
+.dm-actions button.primary{background:linear-gradient(135deg,#e3350d,#ff6b35);}
+.dm-actions button.primary:hover{filter:brightness(1.1);}
+.dex-cell.captured{cursor:pointer;transition:transform .15s;}
+.dex-cell.captured:hover{transform:translateY(-3px);}
 </style>
 </head>
 <body>
@@ -243,6 +264,21 @@ body:has(#title-screen.active) .home-btn{display:inline-block;}
   <div class="dex-grid" id="dex-grid"></div>
 </div>
 
+<!-- 포켓몬 상세보기 모달 -->
+<div id="detail-modal" class="modal-overlay" onclick="onModalBackdrop(event)">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeDetail()" aria-label="닫기">✕</button>
+    <img class="dm-sprite" id="dm-sprite" src="" alt="">
+    <div class="pokemon-num" id="dm-num">#001</div>
+    <div class="pokemon-name" id="dm-name">이상해씨</div>
+    <div class="dm-genus" id="dm-genus"></div>
+    <div style="margin-top:8px;"><span class="rarity-badge" id="dm-rarity">일반</span></div>
+    <div class="dm-types" id="dm-types"></div>
+    <p class="dm-desc" id="dm-desc"></p>
+    <div class="dm-actions" id="dm-actions"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -256,6 +292,40 @@ const RARITY=id=>{
   return{label:'일반',cls:'rarity-common'};
 };
 const SPRITE=id=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+
+/* 타입 영어 → 한글 라벨 + 색상 */
+const TYPE_KR={
+  normal:{label:'노말',color:'#9FA19F'}, fire:{label:'불꽃',color:'#E62829'},
+  water:{label:'물',color:'#2980EF'}, electric:{label:'전기',color:'#FAC000'},
+  grass:{label:'풀',color:'#3FA129'}, ice:{label:'얼음',color:'#3DCEF3'},
+  fighting:{label:'격투',color:'#FF8000'}, poison:{label:'독',color:'#9141CB'},
+  ground:{label:'땅',color:'#915121'}, flying:{label:'비행',color:'#81B9EF'},
+  psychic:{label:'에스퍼',color:'#EF4179'}, bug:{label:'벌레',color:'#91A119'},
+  rock:{label:'바위',color:'#AFA981'}, ghost:{label:'고스트',color:'#704170'},
+  dragon:{label:'드래곤',color:'#5060E1'}, dark:{label:'악',color:'#624D4E'},
+  steel:{label:'강철',color:'#60A1B8'}, fairy:{label:'페어리',color:'#EF70EF'}
+};
+
+/* 포켓몬 타입·설명 캐시 (PokeAPI에서 1회 받아 localStorage에 저장 → 재방문/오프라인 대비) */
+let detailCache={};
+try{detailCache=JSON.parse(localStorage.getItem('pmg2_detail')||'{}');}catch(e){detailCache={};}
+function saveDetailCache(){try{localStorage.setItem('pmg2_detail',JSON.stringify(detailCache));}catch(e){}}
+
+async function fetchDetail(id){
+  if(detailCache[id])return detailCache[id];
+  const [p,s]=await Promise.all([
+    fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>r.json()),
+    fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r=>r.json())
+  ]);
+  const types=p.types.sort((a,b)=>a.slot-b.slot).map(t=>t.type.name);
+  const pick=lang=>{const e=(s.flavor_text_entries||[]).find(x=>x.language.name===lang);return e?e.flavor_text:'';};
+  let flavor=(pick('ko')||pick('en')||'').replace(/[\f\n\r­]/g,' ').replace(/\s+/g,' ').trim();
+  const g=(s.genera||[]).find(x=>x.language.name==='ko')||(s.genera||[]).find(x=>x.language.name==='en');
+  const genus=g?g.genus:'';
+  const data={types,flavor,genus};
+  detailCache[id]=data;saveDetailCache();
+  return data;
+}
 
 const TILE_COLORS=[
   {bg:'#5a8a3a',fg:'#d4f0b0'},{bg:'#2e5fa3',fg:'#b0d0f8'},
@@ -451,7 +521,8 @@ function clickTile(tile,item){
     updateFoundCounter();
     const prevE=Math.floor((totalScore-1)/10);
     const newE=Math.floor(totalScore/10);
-    if(newE>prevE){eggs++;showToast('🥚 알이 하나 생겼어요!');save();}
+    if(newE>prevE){eggs++;showToast('🥚 알이 하나 생겼어요!');}
+    save(); // 점수 변동마다 저장 → 새로고침/업데이트해도 진행 유지
   } else {
     tile.classList.add('reveal-ng');
     badge.className='tbadge ng';badge.textContent='-1';
@@ -577,15 +648,9 @@ function tryHatch(){
       document.getElementById('hatch-sub').textContent=`누적 점수: ${totalScore}점 · 알: ${eggs}개`;
       document.getElementById('egg-svg').style.opacity=eggs>0?'1':'0.35';
       const id=pickPokemon();
-      const r=RARITY(id);
       caught[id]=(caught[id]||0)+1;save();
-      document.getElementById('hatch-sprite').src=SPRITE(id);
-      document.getElementById('hatch-num').textContent='#'+String(id).padStart(3,'0');
-      document.getElementById('hatch-name').textContent=POKEMON_KR[id]||'???';
-      const rb=document.getElementById('hatch-rarity');
-      rb.className='rarity-badge '+r.cls;rb.textContent=r.label;
-      document.getElementById('tap-hint').style.display='none';
-      document.getElementById('hatch-result').classList.add('show');
+      document.getElementById('tap-hint').style.display='';
+      openDetail(id,{hatch:true});
     },400);
   },400);
 }
@@ -624,9 +689,73 @@ function renderDex(){
       cnt2.className='dex-num';cnt2.textContent='x'+caught[id];
       cell.appendChild(cnt2);
     }
+    if(has){
+      cell.title=POKEMON_KR[id]+' 상세보기';
+      cell.onclick=()=>openDetail(id,{hatch:false});
+    }
     grid.appendChild(cell);
   }
 }
+
+/* ══ 상세보기 모달 ══ */
+let detailToken=0;
+function openDetail(id,opts){
+  opts=opts||{};
+  detailToken++;
+  const token=detailToken;
+  const r=RARITY(id);
+  document.getElementById('dm-sprite').src=SPRITE(id);
+  document.getElementById('dm-sprite').alt=POKEMON_KR[id]||'';
+  document.getElementById('dm-num').textContent='#'+String(id).padStart(3,'0');
+  document.getElementById('dm-name').textContent=POKEMON_KR[id]||'???';
+  const rb=document.getElementById('dm-rarity');
+  rb.className='rarity-badge '+r.cls;rb.textContent=r.label;
+  const genusEl=document.getElementById('dm-genus');
+  const typesEl=document.getElementById('dm-types');
+  const descEl=document.getElementById('dm-desc');
+  genusEl.textContent='';
+  typesEl.innerHTML='';
+  descEl.className='dm-desc loading';
+  descEl.textContent='설명을 불러오는 중…';
+  // 액션 버튼 (부화 화면에서만)
+  const actions=document.getElementById('dm-actions');
+  actions.innerHTML='';
+  if(opts.hatch){
+    const again=document.createElement('button');
+    again.textContent='한 번 더 🥚';
+    again.onclick=()=>{closeDetail();tryHatch();};
+    const cont=document.createElement('button');
+    cont.className='primary';cont.textContent='계속 ▶';
+    cont.onclick=()=>{closeDetail();goBack();};
+    actions.append(again,cont);
+  }
+  document.getElementById('detail-modal').classList.add('show');
+  // 타입·설명 비동기 로드 (캐시 우선)
+  fetchDetail(id).then(d=>{
+    if(token!==detailToken)return; // 그새 다른 포켓몬을 열었으면 무시
+    renderTypes(typesEl,d.types);
+    genusEl.textContent=d.genus||'';
+    descEl.className='dm-desc';
+    descEl.textContent=d.flavor||'설명 정보가 없어요.';
+  }).catch(()=>{
+    if(token!==detailToken)return;
+    descEl.className='dm-desc';
+    descEl.textContent='설명을 불러오지 못했어요. (인터넷 연결을 확인해 주세요)';
+  });
+}
+function renderTypes(el,types){
+  el.innerHTML='';
+  (types||[]).forEach(t=>{
+    const info=TYPE_KR[t]||{label:t,color:'#777'};
+    const b=document.createElement('span');
+    b.className='type-badge';
+    b.style.background=info.color;
+    b.textContent=info.label+'타입';
+    el.appendChild(b);
+  });
+}
+function closeDetail(){document.getElementById('detail-modal').classList.remove('show');}
+function onModalBackdrop(e){if(e.target===e.currentTarget)closeDetail();}
 
 /* ══ TOAST ══ */
 let toastT;
@@ -636,6 +765,11 @@ function showToast(msg){
   clearTimeout(toastT);
   toastT=setTimeout(()=>t.classList.remove('show'),2500);
 }
+
+/* ESC 키로 상세보기 모달 닫기 */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.getElementById('detail-modal').classList.contains('show'))closeDetail();
+});
 
 /* init */
 updateHUD();
