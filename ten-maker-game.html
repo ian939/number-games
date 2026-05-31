@@ -204,6 +204,7 @@
     <div class="badge home" id="homeBtn">🏠</div>
     <div class="badge" id="dexBtn" style="cursor:pointer" title="포켓몬 도감">📖</div>
     <div class="badge"><span>⚡</span><span id="starVal">0</span></div>
+    <div class="badge" title="부화에 쓸 수 있는 점수 (10점마다 1마리)"><span>🔓</span><span id="hatchVal">0</span></div>
   </div>
 
   <!-- START -->
@@ -296,6 +297,7 @@
   }
   function updateHud(){
     $("#starVal").textContent = window.Hub ? Hub.gameScore('ten') : stars;
+    const hv = $("#hatchVal"); if (hv) hv.textContent = window.Hub ? Hub.available() : 0;
   }
   function renderBest(){
     for(let i=1;i<=5;i++){ $("#best"+i).textContent = best[i] ? "최고 "+"⭐".repeat(best[i]) : ""; }
@@ -681,6 +683,7 @@
   });
   $("#homeBtn").onclick=()=>{ renderBest(); show("startScreen"); };
   $("#dexBtn").onclick=()=>{ if(window.Hub) Hub.openDex(); };
+  document.addEventListener('hubchange', updateHud);
   $("#againBtn").onclick=()=>startStage(stage);
   $("#backBtn").onclick=()=>{ renderBest(); show("startScreen"); };
 

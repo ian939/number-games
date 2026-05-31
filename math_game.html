@@ -137,6 +137,16 @@
     color: var(--ink);
   }
 
+  .hatch-pts {
+    font-family: 'Jua', sans-serif;
+    font-size: 1rem;
+    color: #8a5a00;
+    background: #ffe9a8;
+    border: 2px solid #f4b400;
+    border-radius: 999px;
+    padding: 5px 13px;
+  }
+
   .stars-count-big {
     font-family: 'Jua', sans-serif;
     font-size: 2.4rem;
@@ -753,6 +763,7 @@
     <div class="stars-label">⭐ 모은 점수</div>
     <div class="stars-count-big" id="stars-count">0</div>
     <div class="stars-display" id="stars-display"></div>
+    <div class="hatch-pts" id="hatch-pts" title="부화에 쓸 수 있는 점수 (도감에서 10점마다 1마리)">🔓 부화점 0</div>
     <button class="reset-btn" id="reset-btn" title="점수 초기화">🔄</button>
   </div>
 
@@ -891,6 +902,7 @@
     nextBtn: document.getElementById('next-btn'),
     starsCount: document.getElementById('stars-count'),
     starsDisplay: document.getElementById('stars-display'),
+    hatchPts: document.getElementById('hatch-pts'),
     upgradeBanner: document.getElementById('upgrade-banner'),
     upgradeBtn: document.getElementById('upgrade-btn'),
     modeToggle: document.getElementById('mode-toggle'),
@@ -1256,9 +1268,8 @@
         el.answerSlot.classList.add('filled', 'correct-flash');
       }
 
-      // 별 계산: 난이도별 보상 + 도움/오답에 따라 차등
-      // 쉬움/보통/어려움 기본 별 = 1/2/3
-      let baseStars = state.level; // 1, 2, 3
+      // 점수 계산: 난이도와 무관하게 최대 2점 (도움/오답에 따라 차등)
+      let baseStars = 2; // 쉬움/보통/어려움 모두 최대 2점
       let earned;
       if (state.wrongCount > 0) {
         earned = 0; // 별을 이미 잃었으니 추가 보상 없음
@@ -1337,6 +1348,7 @@
 
   function updateStars() {
     el.starsCount.textContent = state.stars;
+    updateHatchPts();
 
     // 별 시각 표시 (최대 10개까지)
     el.starsDisplay.innerHTML = '';
@@ -1353,6 +1365,13 @@
 
     saveProgress();
   }
+
+  // 공용 부화점(부화에 쓸 수 있는 점수) 표시
+  function updateHatchPts() {
+    if (el.hatchPts) el.hatchPts.textContent = '🔓 부화점 ' + (window.Hub ? Hub.available() : 0);
+  }
+  // 도감에서 부화하면 부화점이 변하므로 동기화
+  document.addEventListener('hubchange', updateHatchPts);
 
   function checkUpgradeAvailability() {
     if (state.unlocked) {
