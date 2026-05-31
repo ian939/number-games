@@ -4,13 +4,14 @@
 
    역할:
    - 포켓몬 데이터/유틸 (POKEMON_KR, TYPE_KR, RARITY, SPRITE, pickPokemon, fetchDetail)
-   - 공유 상태: 알(eggs) · 도감(caught) · 게임별 점수 버킷(buckets)
-     → localStorage 키 'numbersHub_v1' (같은 origin의 모든 페이지가 공유)
-   - 점수 → 알 전환: 게임별 별 10개마다 알 1개 (Hub.addStars)
-   - 부화: Hub.hatch() (허브에서만 호출)
+   - 공유 점수: 게임별 누적 점수 + 부화에 쓴 점수 + 도감(caught)
+     → localStorage 키 'numbersHub_v2' (같은 origin의 모든 페이지가 공유)
+   - 점수 → 부화: 점수 10점으로 포켓몬 1마리 부화 (Hub.HATCH_COST)
+   - 도감/부화 팝업: 어느 페이지에서든 Hub.openDex() 로 모달이 뜬다(페이지 이동 없음).
 
    새 게임 추가 시: <script src="hub.js"></script> 를 넣고,
-   정답을 맞출 때마다 Hub.addStars('게임id', 별수) 를 호출하면 끝.
+   정답을 맞출 때마다 Hub.addScore('게임id', 점수) 를 호출하면 끝.
+   도감 버튼은 onclick="Hub.openDex()" 로 연결한다.
    ===================================================================== */
 (function (global) {
   "use strict";
@@ -31,10 +32,10 @@
   };
 
   const RARITY=id=>{
-    if([150,151,144,145,146].includes(id))return{label:'전설',cls:'rarity-legend'};
-    if([130,131,142,143,147,148,149].includes(id))return{label:'희귀',cls:'rarity-epic'};
-    if(id%7===0||id%11===0)return{label:'레어',cls:'rarity-rare'};
-    return{label:'일반',cls:'rarity-common'};
+    if([150,151,144,145,146].includes(id))return{label:'전설',cls:'legend'};
+    if([130,131,142,143,147,148,149].includes(id))return{label:'희귀',cls:'epic'};
+    if(id%7===0||id%11===0)return{label:'레어',cls:'rare'};
+    return{label:'일반',cls:'common'};
   };
   const SPRITE=id=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 
@@ -55,7 +56,7 @@
   let detailCache={};
   try{
     detailCache=JSON.parse(localStorage.getItem(DETAIL_KEY)||'null')
-      || JSON.parse(localStorage.getItem('pmg2_detail')||'{}'); // 기존 캐시 시드
+      || JSON.parse(localStorage.getItem('pmg2_detail')||'{}');
   }catch(e){detailCache={};}
   function saveDetailCache(){try{localStorage.setItem(DETAIL_KEY,JSON.stringify(detailCache));}catch(e){}}
 
@@ -75,65 +76,273 @@
     return data;
   }
 
-  /* ── 공유 상태: 알 · 도감 · 게임별 점수 버킷 ── */
-  const STATE_KEY='numbersHub_v1';
-  const PER_EGG=10; // 별 10개 = 알 1개
-  let state={eggs:0,caught:{},buckets:{},_v:1};
+  /* ── 공유 점수: 게임별 누적 점수 · 부화에 쓴 점수 · 도감 ── */
+  const STATE_KEY='numbersHub_v2';
+  const HATCH_COST=10; // 부화 1마리 = 10점
+  let state={scores:{}, spent:0, caught:{}, _v:2};
 
   function load(){
     let raw=null;
     try{raw=JSON.parse(localStorage.getItem(STATE_KEY)||'null');}catch(e){raw=null;}
     if(raw){
-      state.eggs=raw.eggs||0;
+      state.scores=raw.scores||{};
+      state.spent=raw.spent||0;
       state.caught=raw.caught||{};
-      state.buckets=raw.buckets||{};
-      state._v=raw._v||1;
+      state._v=2;
       return;
     }
-    // 최초 1회: 기존 포켓몬 게임 데이터(pmg2)에서 이전
+    // 최초 1회: 옛 알 모델(numbersHub_v1) 또는 포켓몬 게임(pmg2)에서 이전
+    let eggs=0, leftover=0, caught={};
     try{
-      const old=JSON.parse(localStorage.getItem('pmg2')||'null');
-      if(old){
-        state.eggs=old.eggs||0;
-        state.caught=old.caught||{};
-      }
+      const v1=JSON.parse(localStorage.getItem('numbersHub_v1')||'null');
+      if(v1){ eggs=v1.eggs||0; caught=v1.caught||{}; const b=v1.buckets||{}; leftover=Object.keys(b).reduce((a,k)=>a+(b[k]||0),0); }
     }catch(e){}
+    if(!Object.keys(caught).length){
+      try{ const old=JSON.parse(localStorage.getItem('pmg2')||'null'); if(old){ eggs=Math.max(eggs, old.eggs||0); caught=old.caught||{}; } }catch(e){}
+    }
+    const carry=eggs*HATCH_COST+leftover; // 보유 알을 점수로 환산해 이전
+    state.scores=carry>0?{legacy:carry}:{};
+    state.spent=0;
+    state.caught=caught||{};
     save();
   }
-  function save(){try{localStorage.setItem(STATE_KEY,JSON.stringify(state));}catch(e){}}
+  function save(){
+    try{localStorage.setItem(STATE_KEY,JSON.stringify(state));}catch(e){}
+    try{document.dispatchEvent(new Event('hubchange'));}catch(e){}
+  }
 
-  /* 게임에서 별(점수)을 적립 → 10개마다 알 1개. {gained, eggs} 반환 */
-  function addStars(gameId, n){
+  function totalScore(){ return Object.keys(state.scores).reduce((a,k)=>a+(state.scores[k]||0),0); }
+  function available(){ return Math.max(0, totalScore()-state.spent); }
+  function gameScore(id){ return state.scores[id]||0; }
+  function caughtCount(){ return Object.keys(state.caught).length; }
+
+  /* 게임에서 점수 적립. {total(이 게임 누적), available, newEggs(새로 부화 가능해진 수)} 반환 */
+  function addScore(gameId, n){
     n=Math.max(0, Math.floor(n||0));
-    if(!n) return {gained:0, eggs:state.eggs};
-    const b=(state.buckets[gameId]||0)+n;
-    let gained=0, rem=b;
-    while(rem>=PER_EGG){rem-=PER_EGG;gained++;}
-    state.buckets[gameId]=rem;
-    state.eggs+=gained;
+    if(!n) return {total:gameScore(gameId), available:available(), newEggs:0};
+    const before=available();
+    state.scores[gameId]=(state.scores[gameId]||0)+n;
     save();
-    return {gained, eggs:state.eggs};
+    const after=available();
+    const newEggs=Math.floor(after/HATCH_COST)-Math.floor(before/HATCH_COST);
+    return {total:state.scores[gameId], available:after, newEggs};
   }
+  // 구버전 호환
+  function addStars(gameId, n){ return addScore(gameId, n); }
 
-  /* 알 1개 부화 → 포켓몬 id 반환(없으면 null). 허브에서만 호출 */
+  /* 점수 10점으로 부화 → 포켓몬 id 반환(부족하면 null) */
   function hatch(){
-    if(state.eggs<=0) return null;
-    state.eggs--;
+    if(available()<HATCH_COST) return null;
+    state.spent+=HATCH_COST;
     const id=pickPokemon();
     state.caught[id]=(state.caught[id]||0)+1;
     save();
     return id;
   }
 
-  function getEggs(){return state.eggs;}
-  function caughtCount(){return Object.keys(state.caught).length;}
-  function bucketProgress(gameId){return (state.buckets[gameId]||0);} // 0~9, 다음 알까지 남은 별 = PER_EGG - 이값
+  /* ════════════════ 도감/부화 팝업 (어느 페이지에서나) ════════════════ */
+  let uiReady=false, detailToken=0, toastT=0;
+  function ensureUI(){
+    if(uiReady) return;
+    uiReady=true;
+    const css=`
+.hub-overlay{position:fixed;inset:0;background:rgba(10,10,25,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:99999;padding:16px;}
+.hub-overlay.show{display:flex;}
+.hub-dex-card{background:#16213e;color:#e8e8e8;border:2px solid #ffd23f;border-radius:22px;width:100%;max-width:540px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;font-family:'Jua','Gaegu',sans-serif;}
+.hub-dh{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;}
+.hub-dh h2{margin:0;font-size:1.4rem;color:#ffd23f;}
+.hub-x{background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:14px;cursor:pointer;font-family:inherit;}
+.hub-x:hover{background:rgba(255,255,255,.25);}
+.hub-hatch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 18px 12px;flex-wrap:wrap;}
+.hub-stats{font-size:14px;color:#9ab;}
+.hub-stats b{color:#ffd23f;}
+.hub-hatch-btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:#3a2e2a;background:#ffd23f;border:none;border-radius:14px;padding:10px 18px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:inherit;}
+.hub-hatch-btn:disabled{filter:grayscale(.7);opacity:.55;cursor:default;box-shadow:none;}
+.hub-dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;padding:8px 14px 16px;overflow-y:auto;}
+.hub-cell{background:#0f3460;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:4px;border:1px solid rgba(255,255,255,.06);min-height:90px;}
+.hub-cell.has{border-color:rgba(255,210,63,.35);cursor:pointer;}
+.hub-cell.has:hover{transform:scale(1.05);border-color:#ffd23f;}
+.hub-cell img{width:54px;height:54px;image-rendering:pixelated;}
+.hub-cell img.sil{filter:brightness(0) opacity(.18);}
+.hub-cell .n{font-size:11px;color:#9ab;}
+.hub-cell .nm{font-size:12px;color:#e8e8e8;text-align:center;}
+.hub-detail-card{background:linear-gradient(160deg,#1e3a6e,#0f3460);border:2px solid #ffd23f;border-radius:22px;padding:24px 20px 20px;width:100%;max-width:340px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6);max-height:90vh;overflow-y:auto;font-family:'Jua','Gaegu',sans-serif;}
+.hub-dm-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:15px;cursor:pointer;}
+#hubDmSprite{width:130px;height:130px;image-rendering:pixelated;filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));}
+#hubDmNum{font-size:12px;color:#9ab;}
+#hubDmName{font-size:1.5rem;color:#ffd23f;}
+#hubDmGenus{font-size:13px;color:#9ab;margin-top:2px;}
+.hub-rarity{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;margin-top:8px;}
+.hub-rarity.common{background:rgba(155,155,155,.2);color:#aaa;}
+.hub-rarity.rare{background:rgba(59,107,206,.25);color:#7baaf7;}
+.hub-rarity.epic{background:rgba(150,80,220,.25);color:#c084fc;}
+.hub-rarity.legend{background:rgba(255,203,5,.2);color:#ffd23f;}
+.hub-types{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0 6px;min-height:30px;}
+.hub-type{padding:5px 16px;border-radius:999px;font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);}
+#hubDmDesc{font-size:13.5px;line-height:1.75;color:#e8e8e8;background:rgba(0,0,0,.22);border-radius:12px;padding:12px 14px;margin-top:10px;min-height:42px;}
+#hubDmDesc.loading{color:#9ab;font-style:italic;}
+.hub-dm-actions{margin-top:14px;}
+.hub-egg-stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px;color:#ffd23f;font-family:'Jua',sans-serif;}
+@keyframes hubShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
+.hub-shake{animation:hubShake .5s ease-in-out!important;}
+@keyframes hubFlash{0%{filter:brightness(1)}30%{filter:brightness(2)}60%{filter:brightness(1.5)}100%{filter:brightness(1)}}
+.hub-flash{animation:hubFlash .6s ease-out!important;}
+#hubToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#16213e;color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;border:1px solid rgba(255,255,255,.15);opacity:0;transition:all .3s;pointer-events:none;z-index:100000;font-family:'Gaegu',sans-serif;}
+#hubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}`;
+    const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
+
+    const box=document.createElement('div');
+    box.innerHTML=`
+<div class="hub-overlay" id="hubDexModal">
+  <div class="hub-dex-card">
+    <div class="hub-dh"><h2>📖 포켓몬 도감</h2><button class="hub-x" data-act="closeDex">닫기 ✕</button></div>
+    <div class="hub-hatch-row">
+      <div class="hub-stats"><span id="hubDexCount">0 / 151</span> · 부화가능 <b id="hubAvail">0</b>점 / 총 <b id="hubTotal">0</b>점</div>
+      <button class="hub-hatch-btn" id="hubHatchBtn" data-act="hatch">🥚 부화하기 (${HATCH_COST}점)</button>
+    </div>
+    <div class="hub-dex-grid" id="hubDexGrid"></div>
+  </div>
+</div>
+<div class="hub-overlay" id="hubHatchModal">
+  <div class="hub-detail-card"><div class="hub-egg-stage">
+    <svg id="hubEgg" width="120" height="140" viewBox="0 0 120 140">
+      <ellipse cx="60" cy="75" rx="46" ry="58" fill="#f5f0e0" stroke="#d4c89a" stroke-width="3"/>
+      <ellipse cx="48" cy="55" rx="10" ry="14" fill="rgba(255,255,255,0.5)" transform="rotate(-20,48,55)"/>
+    </svg>
+    <div>알에서 무엇이 나올까요?</div>
+  </div></div>
+</div>
+<div class="hub-overlay" id="hubDetailModal">
+  <div class="hub-detail-card">
+    <button class="hub-dm-x" data-act="closeDetail" aria-label="닫기">✕</button>
+    <img id="hubDmSprite" src="" alt="">
+    <div id="hubDmNum"></div>
+    <div id="hubDmName"></div>
+    <div id="hubDmGenus"></div>
+    <div><span class="hub-rarity" id="hubDmRarity"></span></div>
+    <div class="hub-types" id="hubDmTypes"></div>
+    <p id="hubDmDesc"></p>
+    <div class="hub-dm-actions" id="hubDmActions"></div>
+  </div>
+</div>
+<div id="hubToast"></div>`;
+    document.body.appendChild(box);
+
+    // 이벤트 위임
+    box.addEventListener('click', e=>{
+      const ov=e.target.closest('.hub-overlay');
+      if(e.target.classList.contains('hub-overlay')){ // 배경 클릭
+        if(e.target.id==='hubDexModal') closeDex();
+        else if(e.target.id==='hubDetailModal') closeDetail();
+        return;
+      }
+      const act=e.target.getAttribute('data-act');
+      if(act==='closeDex') closeDex();
+      else if(act==='closeDetail') closeDetail();
+      else if(act==='hatch') doHatch();
+    });
+    document.addEventListener('keydown', e=>{
+      if(e.key!=='Escape') return;
+      if(document.getElementById('hubDetailModal').classList.contains('show')) closeDetail();
+      else if(document.getElementById('hubDexModal').classList.contains('show')) closeDex();
+    });
+  }
+
+  function refreshHatchUI(){
+    const c=document.getElementById('hubDexCount'); if(c) c.textContent=caughtCount()+' / 151';
+    const a=document.getElementById('hubAvail'); if(a) a.textContent=available();
+    const t=document.getElementById('hubTotal'); if(t) t.textContent=totalScore();
+    const b=document.getElementById('hubHatchBtn'); if(b) b.disabled=available()<HATCH_COST;
+  }
+
+  function renderDex(){
+    const grid=document.getElementById('hubDexGrid'); if(!grid) return;
+    grid.innerHTML='';
+    for(let id=1;id<=151;id++){
+      const has=state.caught[id];
+      const cell=document.createElement('div'); cell.className='hub-cell'+(has?' has':'');
+      const img=document.createElement('img'); img.className=has?'':'sil'; img.src=SPRITE(id); img.alt=POKEMON_KR[id]||''; img.loading='lazy';
+      const num=document.createElement('div'); num.className='n'; num.textContent='#'+String(id).padStart(3,'0');
+      const nm=document.createElement('div'); nm.className='nm'; nm.textContent=has?POKEMON_KR[id]:'???';
+      cell.append(img,num,nm);
+      if(has&&state.caught[id]>1){const c2=document.createElement('div');c2.className='n';c2.textContent='x'+state.caught[id];cell.appendChild(c2);}
+      if(has){ cell.title=POKEMON_KR[id]+' 상세보기'; cell.onclick=()=>openDetail(id,{}); }
+      grid.appendChild(cell);
+    }
+  }
+
+  function openDex(){ ensureUI(); renderDex(); refreshHatchUI(); document.getElementById('hubDexModal').classList.add('show'); }
+  function closeDex(){ const m=document.getElementById('hubDexModal'); if(m) m.classList.remove('show'); }
+
+  function doHatch(){
+    if(available()<HATCH_COST){ toast('점수가 부족해요! 게임에서 점수를 모아보세요. (10점 필요)'); return; }
+    const svg=document.getElementById('hubEgg');
+    document.getElementById('hubHatchModal').classList.add('show');
+    svg.classList.remove('hub-shake','hub-flash'); void svg.offsetWidth; svg.classList.add('hub-shake');
+    setTimeout(()=>{
+      svg.classList.add('hub-flash');
+      setTimeout(()=>{
+        const id=hatch();
+        document.getElementById('hubHatchModal').classList.remove('show');
+        renderDex(); refreshHatchUI();
+        if(id!=null) openDetail(id,{hatched:true});
+      },500);
+    },500);
+  }
+
+  function openDetail(id, opts){
+    ensureUI(); opts=opts||{};
+    detailToken++; const token=detailToken;
+    const r=RARITY(id);
+    document.getElementById('hubDmSprite').src=SPRITE(id);
+    document.getElementById('hubDmSprite').alt=POKEMON_KR[id]||'';
+    document.getElementById('hubDmNum').textContent='#'+String(id).padStart(3,'0');
+    document.getElementById('hubDmName').textContent=POKEMON_KR[id]||'???';
+    const rb=document.getElementById('hubDmRarity'); rb.className='hub-rarity '+r.cls; rb.textContent=r.label;
+    const genusEl=document.getElementById('hubDmGenus'); genusEl.textContent='';
+    const typesEl=document.getElementById('hubDmTypes'); typesEl.innerHTML='';
+    const descEl=document.getElementById('hubDmDesc'); descEl.className='loading'; descEl.textContent='설명을 불러오는 중…';
+    const actions=document.getElementById('hubDmActions'); actions.innerHTML='';
+    if(opts.hatched){
+      const again=document.createElement('button'); again.className='hub-hatch-btn'; again.textContent='한 번 더 🥚';
+      again.disabled=available()<HATCH_COST;
+      again.onclick=()=>{ closeDetail(); doHatch(); };
+      actions.appendChild(again);
+    }
+    document.getElementById('hubDetailModal').classList.add('show');
+    fetchDetail(id).then(d=>{
+      if(token!==detailToken) return;
+      renderTypes(typesEl, d.types);
+      genusEl.textContent=d.genus||'';
+      descEl.className=''; descEl.textContent=d.flavor||'설명 정보가 없어요.';
+    }).catch(()=>{
+      if(token!==detailToken) return;
+      descEl.className=''; descEl.textContent='설명을 불러오지 못했어요. (인터넷 연결을 확인해 주세요)';
+    });
+  }
+  function renderTypes(el, types){
+    el.innerHTML='';
+    (types||[]).forEach(t=>{
+      const info=TYPE_KR[t]||{label:t,color:'#777'};
+      const b=document.createElement('span'); b.className='hub-type'; b.style.background=info.color; b.textContent=info.label+'타입';
+      el.appendChild(b);
+    });
+  }
+  function closeDetail(){ const m=document.getElementById('hubDetailModal'); if(m) m.classList.remove('show'); }
+
+  function toast(msg){
+    ensureUI();
+    const t=document.getElementById('hubToast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600);
+  }
 
   load();
 
   global.Hub={
     POKEMON_KR, TYPE_KR, RARITY, SPRITE, pickPokemon, fetchDetail,
-    PER_EGG, state,
-    load, save, addStars, hatch, getEggs, caughtCount, bucketProgress
+    HATCH_COST, state,
+    load, save, addScore, addStars, totalScore, available, gameScore, caughtCount, hatch,
+    openDex, closeDex, openDetail, toast
   };
 })(window);

@@ -207,7 +207,7 @@ body:has(#title-screen.active) .home-btn{display:inline-block;}
     <button class="back-btn" onclick="goTitle()">← 홈</button>
     <div class="hud">
       <div class="hud-chip"><div class="lbl">점수</div><div class="val" id="g-score">0</div></div>
-      <div class="hud-chip"><div class="lbl">알</div><div class="val" id="g-eggs">0</div></div>
+      <div class="hud-chip"><div class="lbl">부화점</div><div class="val" id="g-eggs">0</div></div>
       <div class="hud-chip"><div class="lbl">문제</div><div class="val" id="g-qnum">1/10</div></div>
     </div>
   </div>
@@ -367,9 +367,9 @@ function goBack(){
   if(prevScreen==='game'){showScreen('game-screen');updateHUD();}
   else{showScreen('title-screen');}
 }
-/* 부화·도감은 허브(게임 목록)에서 통합 관리 → index.html#dex 로 이동 */
-function goHatch(){location.href='index.html#dex';}
-function showDex(){location.href='index.html#dex';}
+/* 부화·도감은 공용 도감 팝업(hub.js)에서 — 페이지 이동 없이 모달로 연다(게임 진행 유지) */
+function goHatch(){ if(window.Hub) Hub.openDex(); }
+function showDex(){ if(window.Hub) Hub.openDex(); }
 
 /* ══ HELPERS ══ */
 function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
@@ -529,8 +529,8 @@ function clickTile(tile,item){
     totalScore++;
     foundCorrect++;
     updateFoundCounter();
-    // 공용 알 적립: 별 10개마다 알 1개 (hub.js). 부화는 게임 목록(허브) 도감에서.
-    if(window.Hub){ const r=Hub.addStars('pokemon',1); if(r.gained) showToast('🥚 알 +'+r.gained+'! 게임 목록 도감에서 부화하세요'); }
+    // 공용 점수 적립 (hub.js): 10점마다 부화 가능. 부화는 도감(📖)에서.
+    if(window.Hub){ const r=Hub.addScore('pokemon',1); if(r.newEggs>0) showToast('🥚 부화 가능! 도감(📖)에서 부화하세요'); }
   } else {
     tile.classList.add('reveal-ng');
     badge.className='tbadge ng';badge.textContent='-1';
@@ -612,11 +612,12 @@ function showRoundEnd(){
 
 function updateHUD(){
   document.getElementById('g-score').textContent=score;
-  document.getElementById('g-eggs').textContent=window.Hub?Hub.getEggs():0;
+  const avail=window.Hub?Hub.available():0;
+  document.getElementById('g-eggs').textContent=avail;
   document.getElementById('g-qnum').textContent=(qIndex+1)+'/'+TOTAL;
-  const prog=window.Hub?Hub.bucketProgress('pokemon'):0; // 0~9
+  const prog=avail%10; // 0~9, 다음 부화까지
   document.getElementById('score-bar').style.width=(prog/10*100)+'%';
-  document.getElementById('score-bar-label').textContent='다음 알까지 '+(10-prog)+'점';
+  document.getElementById('score-bar-label').textContent='다음 부화까지 '+(10-prog)+'점';
 }
 
 function renderProgress(){

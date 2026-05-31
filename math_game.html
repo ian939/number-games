@@ -750,15 +750,15 @@
   </header>
 
   <div class="score-board">
-    <div class="stars-label">⭐ 모은 별</div>
+    <div class="stars-label">⭐ 모은 점수</div>
     <div class="stars-count-big" id="stars-count">0</div>
     <div class="stars-display" id="stars-display"></div>
-    <button class="reset-btn" id="reset-btn" title="별 초기화">🔄</button>
+    <button class="reset-btn" id="reset-btn" title="점수 초기화">🔄</button>
   </div>
 
   <!-- 업그레이드 배너: 별 200개 달성 + 아직 잠금 해제 안 됨 -->
   <div class="upgrade-banner" id="upgrade-banner" style="display:none;">
-    <div class="upgrade-text">🎉 별 200개 달성! 새로운 모드가 열렸어요!</div>
+    <div class="upgrade-text">🎉 200점 달성! 새로운 모드가 열렸어요!</div>
     <button class="btn btn-upgrade" id="upgrade-btn">난이도 업그레이드 ✨</button>
   </div>
 
@@ -1271,14 +1271,14 @@
       updateStars();
       if (earned > 0) showStarPop(earned);
 
-      // 공용 알 적립: 별 10개마다 알 1개 (hub.js)
+      // 공용 점수 적립 (hub.js): 10점마다 포켓몬 부화 가능
       let eggMsg = "";
       if (earned > 0 && window.Hub) {
-        const r = Hub.addStars('block', earned);
-        if (r.gained) eggMsg = ` <b style="color:#ff8c3b">🥚 알 +${r.gained}!</b>`;
+        const r = Hub.addScore('block', earned);
+        if (r.newEggs > 0) eggMsg = ` <b style="color:#ff8c3b">🥚 부화 가능! (도감)</b>`;
       }
       if (earned > 0) {
-        el.feedback.innerHTML = `정답이야! 🎉 별 <b>${earned}개</b> 획득!` + eggMsg;
+        el.feedback.innerHTML = `정답이야! 🎉 <b>${earned}점</b> 획득!` + eggMsg;
       } else {
         el.feedback.innerHTML = `정답이야! 🎉`;
       }
@@ -1313,7 +1313,7 @@
         state.stars--;
         updateStars();
         showStarLoss();
-        el.feedback.innerHTML = `아쉬워! 별 1개 빠졌어 💔 다시 골라봐!`;
+        el.feedback.innerHTML = `아쉬워! 1점 빠졌어 💔 다시 골라봐!`;
       } else {
         el.feedback.innerHTML = `아쉬워! 다시 골라봐 💪`;
       }
@@ -1439,7 +1439,7 @@
 
   // 별 초기화 버튼
   document.getElementById('reset-btn').addEventListener('click', () => {
-    if (confirm('모은 별과 잠금 해제를 모두 초기화할까요?')) {
+    if (confirm('모은 점수와 잠금 해제를 모두 초기화할까요?')) {
       state.stars = 0;
       state.unlocked = false;
       state.mode = 'classic';
@@ -1463,7 +1463,7 @@
       // 짧은 피드백 메시지 (아이가 봐도 평범한 응원처럼 보이게)
       const toast = document.createElement('div');
       toast.className = 'parent-toast';
-      toast.textContent = '✨ +100 별 ✨';
+      toast.textContent = '✨ +100점 ✨';
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 1200);
     }

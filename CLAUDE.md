@@ -16,30 +16,33 @@
 
 ---
 
-## 🥚 공용 알·도감 시스템 ([hub.js](hub.js))
+## 🥚 공용 점수·도감 시스템 ([hub.js](hub.js))
 
-모든 게임의 점수가 **하나의 알(egg) 풀**로 모이고, 그 알로 포켓몬을 부화시켜 **하나의 공용 도감**을 채운다. 알/도감/부화는 **허브(index.html)의 [도감보기] 팝업에서만** 관리한다(게임 안에서는 부화하지 않음).
+모든 게임의 **점수**가 하나로 모이고, 점수 **10점으로 포켓몬 1마리를 부화**시켜 **하나의 공용 도감**을 채운다. 도감/부화는 **어느 페이지에서든 `Hub.openDex()`로 뜨는 공용 팝업(모달)**에서 관리한다.
 
-- **전환율**: 게임별 별(점수) **10개 = 알 1개**. 게임마다 별도 버킷에 누적되고 10이 차면 알 1개로 변환(나머지는 이월).
+- **전환율**: 점수 **10점 = 부화 1마리** (`Hub.HATCH_COST`). 점수는 게임별로 누적되고, 부화하면 누적 점수에서 10점을 소진(`spent`)한다.
+  - **부화가능 점수** = 모든 게임 총점 − 부화에 쓴 점수(`Hub.available()`)
+  - **총 점수** = 모든 게임 누적 합(`Hub.totalScore()`), 게임별 = `Hub.gameScore(id)`
 - **공유 저장소**(같은 origin이라 모든 페이지가 공유):
-  - `numbersHub_v1` = `{eggs, caught:{id:수}, buckets:{게임id:별}, _v}`
+  - `numbersHub_v2` = `{scores:{게임id:누적점수}, spent, caught:{id:수}, _v}`
   - `numbersHub_detail` = PokeAPI 타입·설명 캐시
-  - 최초 로드 시 기존 포켓몬 게임 데이터(`pmg2`)의 알·도감을 자동 이전한다.
-- **`window.Hub` API** (hub.js): `addStars(gameId, n)` → `{gained, eggs}`, `hatch()` → id|null, `getEggs()`, `caughtCount()`, `bucketProgress(gameId)`, 그리고 데이터/유틸 `POKEMON_KR/TYPE_KR/RARITY/SPRITE/pickPokemon/fetchDetail`.
-- **부화/도감 UI**(알 SVG 연출, 도감 그리드, 상세 모달)는 [index.html](index.html)에만 둔다. 게임의 도감/부화 버튼은 `index.html#dex`로 보내면 도감 팝업이 자동으로 열린다.
+  - 최초 로드 시 옛 알 모델(`numbersHub_v1`)/포켓몬 게임(`pmg2`)의 알·도감을 점수로 자동 이전한다.
+- **`window.Hub` API**: `addScore(gameId,n)` → `{total, available, newEggs}`, `available()`, `totalScore()`, `gameScore(id)`, `hatch()`→id|null, `caughtCount()`, `openDex()`/`closeDex()`/`openDetail(id)`, `toast(msg)`, 데이터/유틸 `POKEMON_KR/TYPE_KR/RARITY/SPRITE/pickPokemon/fetchDetail`.
+- **도감/부화/상세 UI 전체를 hub.js가 주입**한다(`hub-` 접두 클래스, id `hubDexModal` 등). 게임은 마크업/CSS 없이 `Hub.openDex()`만 호출하면 된다. **모달이라 페이지 이동이 없어 게임 진행이 유지된다.**
+- 상태 변경 시 `document`에 **`hubchange`** 이벤트가 발생한다(점수 표시 갱신용). index가 이를 듣고 카드 점수·부화가능 점수를 갱신한다.
 
-### 새 게임에서 점수 → 알 연결 (필수)
+### 새 게임에서 점수 연결 (필수)
 
 1. `</body>` 앞(인라인 게임 `<script>` **바로 위**)에 `<script src="hub.js"></script>` 추가.
 2. 정답을 맞춰 점수를 줄 때마다 호출:
    ```js
    if (window.Hub) {
-     const r = Hub.addStars('내게임id', 획득별수);
-     if (r.gained) /* "🥚 알 +N!" 안내 토스트/피드백 */;
+     const r = Hub.addScore('내게임id', 획득점수);
+     if (r.newEggs > 0) /* "🥚 부화 가능!" 안내 */;
    }
    ```
-   - `별 차감`(오답 페널티)은 알에 반영하지 않는다 — **획득 시점에만** `addStars` 호출.
-   - 게임 자체 점수/별은 각자 localStorage에 따로 저장해도 된다(독립). 알만 Hub로 모은다.
+   - 점수 차감(오답 페널티)은 부화 점수에 반영하지 않는다 — **획득 시점에만** `addScore`.
+   - 도감 버튼은 `onclick="Hub.openDex()"`. index의 `GAMES` 항목에 `gameId`를 넣으면 카드에 그 게임 점수가 표시된다.
 
 ---
 

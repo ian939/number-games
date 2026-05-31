@@ -34,7 +34,7 @@
       radial-gradient(circle at 82% 30%, #ffd1d1 0 8px, transparent 9px),
       radial-gradient(circle at 68% 78%, #c4efe9 0 7px, transparent 8px),
       radial-gradient(circle at 26% 82%, #bfe0ff 0 7px, transparent 8px),
-      linear-gradient(160deg,#fff7e6 0%,#fef0d6 100%);
+      linear-gradient(160deg,#fff7d6 0%,#ffe9a8 100%);
     background-attachment:fixed;
     overflow-x:hidden;
     user-select:none;
@@ -59,11 +59,12 @@
   /* ---------- START ---------- */
   .title{text-align:center;margin:8px 0 4px;}
   .title h1{
-    font-size:46px;margin:0;line-height:1.05;color:var(--coral);
-    text-shadow:3px 3px 0 #fff, 6px 6px 0 var(--shadow);letter-spacing:1px;
+    font-size:38px;margin:0;line-height:1.12;color:#ffcb05;
+    text-shadow:2px 2px 0 #2a4b8d, 4px 4px 0 var(--shadow);letter-spacing:.5px;
   }
   .title .sub{font-family:'Gaegu';font-weight:700;font-size:20px;color:var(--ink);opacity:.8;margin-top:6px;}
   .mascot{font-size:88px;text-align:center;margin:6px 0 0;filter:drop-shadow(4px 6px 0 var(--shadow));animation:bob 2.4s ease-in-out infinite;}
+  .mascot-img{width:118px;height:118px;image-rendering:pixelated;}
   @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
 
   .stages{display:flex;flex-direction:column;gap:14px;margin-top:18px;}
@@ -201,15 +202,16 @@
 <div id="app">
   <div class="hud">
     <div class="badge home" id="homeBtn">🏠</div>
-    <div class="badge"><span>⭐</span><span id="starVal">0</span></div>
+    <div class="badge" id="dexBtn" style="cursor:pointer" title="포켓몬 도감">📖</div>
+    <div class="badge"><span>⚡</span><span id="starVal">0</span></div>
   </div>
 
   <!-- START -->
   <div class="screen" id="startScreen">
-    <div class="mascot">🦊</div>
+    <div class="mascot"><img class="mascot-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" alt="피카츄"></div>
     <div class="title">
-      <h1>10 만들기<br>대모험</h1>
-      <div class="sub">여우랑 같이 10을 만들어 보자!</div>
+      <h1>피카츄의<br>10 만들기 대모험</h1>
+      <div class="sub">피카츄랑 같이 10을 만들어 보자! ⚡</div>
     </div>
     <div class="stages">
       <div class="stage-card c2" data-stage="1">
@@ -293,7 +295,7 @@
     sc.classList.remove("screen"); void sc.offsetWidth; sc.classList.add("screen");
   }
   function updateHud(){
-    $("#starVal").textContent = stars;
+    $("#starVal").textContent = window.Hub ? Hub.gameScore('ten') : stars;
   }
   function renderBest(){
     for(let i=1;i<=5;i++){ $("#best"+i).textContent = best[i] ? "최고 "+"⭐".repeat(best[i]) : ""; }
@@ -584,12 +586,12 @@
   function onCorrect(){
     const gain = 1;
     stars += gain; roundStars += gain;
-    updateHud();
-    // 공용 알 적립: 별 10개마다 알 1개 (hub.js)
+    // 공용 점수 적립 (hub.js): 10점마다 포켓몬 부화 가능
     let eggMsg = "";
-    if (window.Hub){ const r = Hub.addStars('ten', gain); if (r.gained) eggMsg = ` <b style="color:#ff8c3b">🥚 알 +${r.gained}!</b>`; }
-    const faces=["😄","🥳","🤩","😎","🦊"];
-    $("#feedbackEl").innerHTML = `<span class="face">${pick(faces)}</span> 정답! +${gain}⭐` + eggMsg;
+    if (window.Hub){ const r = Hub.addScore('ten', gain); if (r.newEggs > 0) eggMsg = ` <b style="color:#ff8c3b">🥚 부화 가능!</b>`; }
+    updateHud();
+    const faces=["😄","🥳","🤩","😎","⚡"];
+    $("#feedbackEl").innerHTML = `<span class="face">${pick(faces)}</span> 정답! +${gain}점` + eggMsg;
     burstConfetti(24);
     qIndex++;
     $("#progBar").style.width=(qIndex/QPER*100)+"%";
@@ -650,7 +652,7 @@
     $("#resultFace").textContent = pick(faces);
     $("#resultStars").textContent = "⭐".repeat(st)+"☆".repeat(3-st);
     $("#resultTitle").textContent = st===3?"완벽해요!":(st===2?"아주 잘했어요!":"잘했어요!");
-    $("#resultScore").innerHTML = `이번 판 ⭐ ${roundStars}개 · 틀린 횟수 ${mistakes}번`;
+    $("#resultScore").innerHTML = `이번 판 ⚡ ${roundStars}점 · 틀린 횟수 ${mistakes}번`;
     show("resultScreen");
     burstConfetti(70);
   }
@@ -678,6 +680,7 @@
     c.onclick=()=>startStage(+c.dataset.stage);
   });
   $("#homeBtn").onclick=()=>{ renderBest(); show("startScreen"); };
+  $("#dexBtn").onclick=()=>{ if(window.Hub) Hub.openDex(); };
   $("#againBtn").onclick=()=>startStage(stage);
   $("#backBtn").onclick=()=>{ renderBest(); show("startScreen"); };
 

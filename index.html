@@ -181,57 +181,10 @@
   .dex-open-btn:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 10px 26px rgba(0,0,0,.4);}
   .dex-open-btn .egg-pill{background:rgba(0,0,0,.18);border-radius:999px;padding:2px 11px;font-size:1rem;}
 
-  /* ── 모달 공통 ── */
-  .overlay{position:fixed;inset:0;background:rgba(10,10,25,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px;}
-  .overlay.show{display:flex;animation:fadeIn .2s ease;}
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  /* 카드의 게임별 점수 */
+  .card-score{align-self:flex-start;font-family:'Jua',sans-serif;font-size:.95rem;color:#8a7a5a;background:rgba(255,210,63,.18);border:1px solid rgba(255,179,0,.35);border-radius:999px;padding:3px 12px;}
 
-  /* ── 도감 모달 ── */
-  .dex-card{background:#16213e;color:#e8e8e8;border:2px solid var(--accent);border-radius:22px;width:100%;max-width:540px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:popIn .3s cubic-bezier(.34,1.56,.64,1);overflow:hidden;}
-  .dex-card .dh{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;gap:10px;}
-  .dex-card .dh h2{font-family:'Jua',sans-serif;font-size:1.4rem;color:var(--accent);}
-  .dex-close{background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:10px;padding:7px 14px;cursor:pointer;font-size:14px;font-family:'Gaegu',sans-serif;}
-  .dex-close:hover{background:rgba(255,255,255,.25);}
-  .hatch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 18px 12px;flex-wrap:wrap;}
-  .dex-stats{font-size:14px;color:#9ab;}
-  .hatch-btn{display:inline-flex;align-items:center;gap:8px;font-family:'Jua',sans-serif;font-size:15px;color:#3a2e2a;background:var(--accent);border:none;border-radius:14px;padding:10px 18px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);}
-  .hatch-btn:disabled{filter:grayscale(.7);opacity:.55;cursor:default;box-shadow:none;}
-  .dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;padding:8px 14px 16px;overflow-y:auto;}
-  .dex-cell{background:#0f3460;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:4px;border:1px solid rgba(255,255,255,.06);min-height:90px;cursor:default;transition:border-color .15s,transform .12s;}
-  .dex-cell.captured{border-color:rgba(255,210,63,.35);cursor:pointer;}
-  .dex-cell.captured:hover{transform:scale(1.05);border-color:var(--accent);}
-  .dex-sprite{width:54px;height:54px;image-rendering:pixelated;}
-  .dex-sprite.silhouette{filter:brightness(0) opacity(.18);}
-  .dex-num{font-size:11px;color:#9ab;}
-  .dex-name{font-size:12px;color:#e8e8e8;text-align:center;}
-
-  /* ── 부화 연출 ── */
-  .egg-stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px;}
-  @keyframes shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
-  .egg-shake{animation:shake .5s ease-in-out!important;}
-  @keyframes crack-flash{0%{filter:brightness(1)}30%{filter:brightness(2)}60%{filter:brightness(1.5)}100%{filter:brightness(1)}}
-  .egg-crack{animation:crack-flash .6s ease-out!important;}
-
-  /* ── 상세 모달 ── */
-  .detail-card{background:linear-gradient(160deg,#1e3a6e,#0f3460);border:2px solid var(--accent);border-radius:22px;padding:24px 20px 20px;width:100%;max-width:340px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:popIn .3s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto;}
-  .detail-card .dm-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:15px;cursor:pointer;}
-  .dm-sprite{width:130px;height:130px;image-rendering:pixelated;filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));}
-  .dm-num{font-size:12px;color:#9ab;}
-  .dm-name{font-family:'Jua',sans-serif;font-size:1.5rem;color:var(--accent);}
-  .dm-genus{font-size:13px;color:#9ab;margin-top:2px;}
-  .rarity-badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;margin-top:8px;}
-  .rarity-common{background:rgba(155,155,155,.2);color:#aaa;}
-  .rarity-rare{background:rgba(59,107,206,.25);color:#7baaf7;}
-  .rarity-epic{background:rgba(150,80,220,.25);color:#c084fc;}
-  .rarity-legend{background:rgba(255,203,5,.2);color:var(--accent);}
-  .dm-types{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0 6px;min-height:30px;}
-  .type-badge{padding:5px 16px;border-radius:999px;font-size:13px;font-weight:700;color:#fff;font-family:'Jua',sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.45);}
-  .dm-desc{font-size:13.5px;line-height:1.75;color:#e8e8e8;background:rgba(0,0,0,.22);border-radius:12px;padding:12px 14px;margin-top:10px;min-height:42px;}
-  .dm-desc.loading{color:#9ab;font-style:italic;}
-
-  #hub-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#16213e;color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;border:1px solid rgba(255,255,255,.15);opacity:0;transition:all .3s;pointer-events:none;z-index:3000;}
-  #hub-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  /* 도감/부화/상세 모달은 hub.js가 주입(hub- 클래스) */
 </style>
 </head>
 <body>
@@ -251,51 +204,6 @@
     </footer>
   </div>
 
-  <!-- 도감 모달 -->
-  <div class="overlay" id="dex-modal" onclick="if(event.target===this)closeDex()">
-    <div class="dex-card">
-      <div class="dh">
-        <h2>📖 포켓몬 도감</h2>
-        <button class="dex-close" onclick="closeDex()">닫기 ✕</button>
-      </div>
-      <div class="hatch-row">
-        <div class="dex-stats" id="dexStats">0 / 151 마리</div>
-        <button class="hatch-btn" id="hatchBtn" onclick="doHatch()">🥚 알 부화하기 (<span id="hatchCount">0</span>)</button>
-      </div>
-      <div class="dex-grid" id="dexGrid"></div>
-    </div>
-  </div>
-
-  <!-- 부화 연출 모달 -->
-  <div class="overlay" id="hatch-modal">
-    <div class="detail-card">
-      <div class="egg-stage">
-        <svg class="egg-svg" id="eggSvg" width="120" height="140" viewBox="0 0 120 140">
-          <ellipse cx="60" cy="75" rx="46" ry="58" fill="#f5f0e0" stroke="#d4c89a" stroke-width="3"/>
-          <ellipse cx="48" cy="55" rx="10" ry="14" fill="rgba(255,255,255,0.5)" transform="rotate(-20,48,55)"/>
-        </svg>
-        <div style="font-family:'Jua',sans-serif;color:var(--accent);">알에서 무엇이 나올까요?</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 상세 모달 -->
-  <div class="overlay" id="detail-modal" onclick="if(event.target===this)closeDetail()">
-    <div class="detail-card">
-      <button class="dm-close" onclick="closeDetail()" aria-label="닫기">✕</button>
-      <img class="dm-sprite" id="dmSprite" src="" alt="">
-      <div class="dm-num" id="dmNum"></div>
-      <div class="dm-name" id="dmName"></div>
-      <div class="dm-genus" id="dmGenus"></div>
-      <div><span class="rarity-badge" id="dmRarity"></span></div>
-      <div class="dm-types" id="dmTypes"></div>
-      <p class="dm-desc" id="dmDesc"></p>
-      <div id="dmActions" style="margin-top:14px;"></div>
-    </div>
-  </div>
-
-  <div id="hub-toast"></div>
-
 <script src="hub.js"></script>
 <script>
   /* =====================================================================
@@ -309,6 +217,7 @@
   const GAMES = [
     {
       file: "math_game.html",
+      gameId: "block",
       title: "블록 더하기",
       emoji: "🧱",
       desc: "블록을 쌓아서 더하기를 배워요. 10개씩 묶어 자릿값도 익혀요!",
@@ -316,6 +225,7 @@
     },
     {
       file: "pokemon_math_game.html",
+      gameId: "pokemon",
       title: "포켓몬 수학",
       emoji: "⚡",
       desc: "포켓몬과 함께 더하기·빼기 모험을 떠나요. 도감도 모아보자!",
@@ -323,12 +233,13 @@
     },
     {
       file: "ten-maker-game.html",
-      title: "10 만들기 대모험",
-      emoji: "🔟",
-      desc: "여우랑 10을 만들어 받아올림 덧셈을 익혀요! 5단계 모험.",
-      color: "#ff6b6b"
+      gameId: "ten",
+      title: "피카츄의 10 만들기 대모험",
+      emoji: "⚡",
+      desc: "피카츄랑 10을 만들어 받아올림 덧셈을 익혀요! 5단계 모험.",
+      color: "#ffcb05"
     },
-    // ↓↓↓ 새 게임을 여기에 추가하세요 ↓↓↓
+    // ↓↓↓ 새 게임을 여기에 추가하세요 (gameId: hub.js 점수 적립용 키) ↓↓↓
   ];
 
   /* ---- 화면 그리기 ---- */
@@ -349,6 +260,7 @@
         <span class="emoji">${g.emoji || "🔢"}</span>
         <h2>${g.title}</h2>
         <p class="desc">${g.desc || ""}</p>
+        ${g.gameId ? `<span class="card-score" data-game="${g.gameId}">⭐ 총 0점</span>` : ""}
         <span class="play">시작하기 ▶</span>
       `;
       grid.appendChild(a);
@@ -371,131 +283,22 @@
   }
 
   /* =====================================================================
-     도감 / 부화 / 상세보기 — 공용 알·도감(hub.js)을 여기서 관리
+     도감/부화는 hub.js의 공용 모달(Hub.openDex)을 사용 — 점수만 여기서 표시
      ===================================================================== */
-  function updateEggUI(){
-    const e = Hub.getEggs();
-    document.getElementById("eggPill").textContent = "🥚 " + e;
-    const hc = document.getElementById("hatchCount");
-    if (hc) hc.textContent = e;
-    const hb = document.getElementById("hatchBtn");
-    if (hb) hb.disabled = e <= 0;
-  }
+  function openDex(){ Hub.openDex(); }   // [도감보기] 버튼
 
-  function openDex(){ renderDex(); updateEggUI(); document.getElementById("dex-modal").classList.add("show"); }
-  function closeDex(){ document.getElementById("dex-modal").classList.remove("show"); }
-
-  function renderDex(){
-    const grid = document.getElementById("dexGrid");
-    grid.innerHTML = "";
-    const caught = Hub.state.caught;
-    document.getElementById("dexStats").textContent = Hub.caughtCount() + " / 151 마리";
-    for (let id = 1; id <= 151; id++){
-      const has = caught[id];
-      const cell = document.createElement("div");
-      cell.className = "dex-cell" + (has ? " captured" : "");
-      const img = document.createElement("img");
-      img.className = "dex-sprite" + (has ? "" : " silhouette");
-      img.src = Hub.SPRITE(id); img.alt = Hub.POKEMON_KR[id] || ""; img.loading = "lazy";
-      const num = document.createElement("div");
-      num.className = "dex-num"; num.textContent = "#" + String(id).padStart(3, "0");
-      const name = document.createElement("div");
-      name.className = "dex-name"; name.textContent = has ? Hub.POKEMON_KR[id] : "???";
-      cell.append(img, num, name);
-      if (has && caught[id] > 1){
-        const c2 = document.createElement("div");
-        c2.className = "dex-num"; c2.textContent = "x" + caught[id];
-        cell.appendChild(c2);
-      }
-      if (has){
-        cell.title = Hub.POKEMON_KR[id] + " 상세보기";
-        cell.onclick = () => openDetail(id, {});
-      }
-      grid.appendChild(cell);
-    }
-  }
-
-  function doHatch(){
-    if (Hub.getEggs() <= 0){ hubToast("알이 없어요! 게임에서 점수를 모아보세요."); return; }
-    const svg = document.getElementById("eggSvg");
-    document.getElementById("hatch-modal").classList.add("show");
-    svg.classList.remove("egg-shake", "egg-crack");
-    void svg.offsetWidth;
-    svg.classList.add("egg-shake");
-    setTimeout(() => {
-      svg.classList.add("egg-crack");
-      setTimeout(() => {
-        const id = Hub.hatch();
-        document.getElementById("hatch-modal").classList.remove("show");
-        renderDex(); updateEggUI();
-        if (id != null) openDetail(id, { hatched: true });
-      }, 500);
-    }, 500);
-  }
-
-  let detailToken = 0;
-  function openDetail(id, opts){
-    opts = opts || {};
-    detailToken++; const token = detailToken;
-    const r = Hub.RARITY(id);
-    document.getElementById("dmSprite").src = Hub.SPRITE(id);
-    document.getElementById("dmSprite").alt = Hub.POKEMON_KR[id] || "";
-    document.getElementById("dmNum").textContent = "#" + String(id).padStart(3, "0");
-    document.getElementById("dmName").textContent = Hub.POKEMON_KR[id] || "???";
-    const rb = document.getElementById("dmRarity");
-    rb.className = "rarity-badge " + r.cls; rb.textContent = r.label;
-    const genusEl = document.getElementById("dmGenus"); genusEl.textContent = "";
-    const typesEl = document.getElementById("dmTypes"); typesEl.innerHTML = "";
-    const descEl = document.getElementById("dmDesc");
-    descEl.className = "dm-desc loading"; descEl.textContent = "설명을 불러오는 중…";
-    const actions = document.getElementById("dmActions"); actions.innerHTML = "";
-    if (opts.hatched){
-      const again = document.createElement("button");
-      again.className = "hatch-btn"; again.textContent = "한 번 더 🥚";
-      again.disabled = Hub.getEggs() <= 0;
-      again.onclick = () => { closeDetail(); doHatch(); };
-      actions.appendChild(again);
-    }
-    document.getElementById("detail-modal").classList.add("show");
-    Hub.fetchDetail(id).then(d => {
-      if (token !== detailToken) return;
-      renderTypes(typesEl, d.types);
-      genusEl.textContent = d.genus || "";
-      descEl.className = "dm-desc"; descEl.textContent = d.flavor || "설명 정보가 없어요.";
-    }).catch(() => {
-      if (token !== detailToken) return;
-      descEl.className = "dm-desc";
-      descEl.textContent = "설명을 불러오지 못했어요. (인터넷 연결을 확인해 주세요)";
+  function updateScores(){
+    const avail = Hub.available();
+    const pill = document.getElementById("eggPill");
+    if (pill) pill.textContent = "🔓 " + avail + "점";
+    document.querySelectorAll(".card-score[data-game]").forEach(el => {
+      el.textContent = "⭐ 총 " + Hub.gameScore(el.dataset.game) + "점";
     });
   }
-  function renderTypes(el, types){
-    el.innerHTML = "";
-    (types || []).forEach(t => {
-      const info = Hub.TYPE_KR[t] || { label: t, color: "#777" };
-      const b = document.createElement("span");
-      b.className = "type-badge"; b.style.background = info.color;
-      b.textContent = info.label + "타입";
-      el.appendChild(b);
-    });
-  }
-  function closeDetail(){ document.getElementById("detail-modal").classList.remove("show"); }
 
-  let hubToastT;
-  function hubToast(msg){
-    const t = document.getElementById("hub-toast");
-    t.textContent = msg; t.classList.add("show");
-    clearTimeout(hubToastT);
-    hubToastT = setTimeout(() => t.classList.remove("show"), 2500);
-  }
-
-  document.addEventListener("keydown", e => {
-    if (e.key !== "Escape") return;
-    if (document.getElementById("detail-modal").classList.contains("show")) closeDetail();
-    else if (document.getElementById("dex-modal").classList.contains("show")) closeDex();
-  });
-
-  updateEggUI();
-  if (location.hash === "#dex") openDex();
+  document.addEventListener("hubchange", updateScores);
+  updateScores();
+  if (location.hash === "#dex") Hub.openDex();
 </script>
 </body>
 </html>
