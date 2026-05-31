@@ -204,7 +204,7 @@
     <div class="badge home" id="homeBtn">🏠</div>
     <div class="badge" id="dexBtn" style="cursor:pointer" title="포켓몬 도감">📖</div>
     <div class="badge"><span>⚡</span><span id="starVal">0</span></div>
-    <div class="badge" title="부화에 쓸 수 있는 점수 (10점마다 1마리)"><span>🔓</span><span id="hatchVal">0</span></div>
+    <div class="badge" title="부화에 쓸 수 있는 점수 (10점마다 1마리)"><span>🥚</span><span id="hatchVal">0</span></div>
   </div>
 
   <!-- START -->
@@ -284,7 +284,7 @@
   // ---- game state ----
   const QPER = 6;              // questions per round
   let stage = 1, qIndex = 0, roundStars = 0, lock = false;
-  let stars = 0, mistakes = 0;
+  let stars = 0, mistakes = 0, hintUsed = false;
   let current = null;          // current question object
   let stepPhase = 0;           // for stage 3 multi-step
 
@@ -398,7 +398,7 @@
     show("playScreen"); nextQuestion();
   }
   function nextQuestion(){
-    lock=false; stepPhase=0;
+    lock=false; stepPhase=0; hintUsed=false;
     $("#feedbackEl").innerHTML="";
     $("#progBar").style.width = (qIndex/QPER*100)+"%";
     if(qIndex>=QPER){ return endRound(); }
@@ -483,7 +483,7 @@
     const frames=$("#framesEl"); frames.innerHTML="";
     const wrap=document.createElement("div"); wrap.className="hint-wrap";
     const btn=document.createElement("button"); btn.className="hint-btn"; btn.innerHTML="💡 힌트 보기";
-    btn.onclick=()=>{ frames.innerHTML=""; frames.appendChild(buildDecomp(a,b)); };
+    btn.onclick=()=>{ hintUsed=true; frames.innerHTML=""; frames.appendChild(buildDecomp(a,b)); };
     wrap.appendChild(btn); frames.appendChild(wrap);
 
     $("#questionEl").innerHTML = current.q;
@@ -586,7 +586,9 @@
   }
 
   function onCorrect(){
-    const gain = 1;
+    // 4·5단계는 최대 2점, 힌트를 쓰면 1점 (그 외 단계는 1점)
+    let gain = 1;
+    if (stage===4 || stage===5) gain = hintUsed ? 1 : 2;
     stars += gain; roundStars += gain;
     // 공용 점수 적립 (hub.js): 10점마다 포켓몬 부화 가능
     let eggMsg = "";

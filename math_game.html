@@ -763,7 +763,7 @@
     <div class="stars-label">⭐ 모은 점수</div>
     <div class="stars-count-big" id="stars-count">0</div>
     <div class="stars-display" id="stars-display"></div>
-    <div class="hatch-pts" id="hatch-pts" title="부화에 쓸 수 있는 점수 (도감에서 10점마다 1마리)">🔓 부화점 0</div>
+    <div class="hatch-pts" id="hatch-pts" title="부화에 쓸 수 있는 점수 (도감에서 10점마다 1마리)">🥚 부화점 0</div>
     <button class="reset-btn" id="reset-btn" title="점수 초기화">🔄</button>
   </div>
 
@@ -1368,7 +1368,7 @@
 
   // 공용 부화점(부화에 쓸 수 있는 점수) 표시
   function updateHatchPts() {
-    if (el.hatchPts) el.hatchPts.textContent = '🔓 부화점 ' + (window.Hub ? Hub.available() : 0);
+    if (el.hatchPts) el.hatchPts.textContent = '🥚 부화점 ' + (window.Hub ? Hub.available() : 0);
   }
   // 도감에서 부화하면 부화점이 변하므로 동기화
   document.addEventListener('hubchange', updateHatchPts);

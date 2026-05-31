@@ -207,7 +207,7 @@ body:has(#title-screen.active) .home-btn{display:inline-block;}
     <button class="back-btn" onclick="goTitle()">← 홈</button>
     <div class="hud">
       <div class="hud-chip"><div class="lbl">점수</div><div class="val" id="g-score">0</div></div>
-      <div class="hud-chip"><div class="lbl">부화점</div><div class="val" id="g-eggs">0</div></div>
+      <div class="hud-chip"><div class="lbl">🥚 부화점</div><div class="val" id="g-eggs">0</div></div>
       <div class="hud-chip"><div class="lbl">문제</div><div class="val" id="g-qnum">1/10</div></div>
     </div>
   </div>
@@ -568,9 +568,13 @@ function autoAdvance(){
   const token=qToken;
   // 남은 타일 클릭 잠그기 + 안내
   document.querySelectorAll('.eq-tile:not(.locked)').forEach(t=>t.classList.add('locked'));
+  // 정답 모두 찾기 보너스: +2점
+  let bonusMsg='';
+  if(window.Hub){ const r=Hub.addScore('pokemon',2); bonusMsg=' 🎉 모두 찾기 +2점!'; if(r.newEggs>0) showToast('🥚 부화 가능! 도감에서 부화하세요'); }
+  updateHUD();
   const fb=document.getElementById('feedback-bar');
   fb.className='feedback-bar fb-ok';
-  fb.textContent=(qIndex+1>=TOTAL)?'정답을 모두 찾았어요! 결과를 볼게요 🎉':'정답을 모두 찾았어요! 다음 문제로 →';
+  fb.textContent=((qIndex+1>=TOTAL)?'정답을 모두 찾았어요! 결과를 볼게요 🎉':'정답을 모두 찾았어요! 다음 문제로 →')+bonusMsg;
   const nb=document.getElementById('next-btn');
   nb.textContent='다음 →';
   setTimeout(()=>{ if(token===qToken) handleNext(); },1100);

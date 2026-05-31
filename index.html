@@ -290,7 +290,7 @@
   function updateScores(){
     const avail = Hub.available();
     const pill = document.getElementById("eggPill");
-    if (pill) pill.textContent = "🔓 " + avail + "점";
+    if (pill) pill.textContent = "🥚 " + avail + "점";
     document.querySelectorAll(".card-score[data-game]").forEach(el => {
       el.textContent = "⭐ 총 " + Hub.gameScore(el.dataset.game) + "점";
     });
