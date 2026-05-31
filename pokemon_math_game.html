@@ -172,6 +172,18 @@ body:has(#title-screen.active) .home-btn{display:inline-block;}
 .dm-actions button.primary:hover{filter:brightness(1.1);}
 .dex-cell.captured{cursor:pointer;transition:transform .15s;}
 .dex-cell.captured:hover{transform:translateY(-3px);}
+
+/* ── 정답 모두 찾기 보너스 팝업 ── */
+.bonus-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:2500;padding:18px;}
+.bonus-overlay.show{display:flex;animation:fadeIn .2s ease;}
+.bonus-card{background:linear-gradient(160deg,#2a6e3a,#0f4630);border:3px solid var(--yellow);border-radius:24px;padding:26px 26px 22px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:popIn .4s cubic-bezier(.34,1.56,.64,1);max-width:320px;width:100%;}
+.bonus-emoji{font-size:56px;line-height:1;animation:bonusPop .6s ease;}
+@keyframes bonusPop{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(1) rotate(0)}}
+.bonus-title{font-family:'Jua',sans-serif;font-size:20px;color:#fff;margin-top:10px;}
+.bonus-points{font-family:'Jua',sans-serif;font-size:38px;color:var(--yellow);margin:10px 0 4px;text-shadow:0 2px 0 rgba(0,0,0,.35);animation:bonusPop .6s ease .12s both;}
+.bonus-sub{font-size:13px;color:var(--text-muted);}
+.bonus-next{margin-top:16px;padding:12px 28px;border-radius:14px;border:none;font-family:'Jua',sans-serif;font-size:16px;cursor:pointer;background:linear-gradient(135deg,#ffcb05,#f4b400);color:#3a2e2a;box-shadow:0 5px 16px rgba(0,0,0,.4);transition:transform .12s,filter .12s;}
+.bonus-next:hover{filter:brightness(1.06);transform:translateY(-2px);}
 </style>
 </head>
 <body>
@@ -282,6 +294,17 @@ body:has(#title-screen.active) .home-btn{display:inline-block;}
     <div class="dm-types" id="dm-types"></div>
     <p class="dm-desc" id="dm-desc"></p>
     <div class="dm-actions" id="dm-actions"></div>
+  </div>
+</div>
+
+<!-- 정답 모두 찾기 보너스 팝업 -->
+<div class="bonus-overlay" id="bonus-modal">
+  <div class="bonus-card">
+    <div class="bonus-emoji">🎉</div>
+    <div class="bonus-title">정답을 모두 찾았어요!</div>
+    <div class="bonus-points">+2점 🥚</div>
+    <div class="bonus-sub" id="bonus-sub">모두 찾기 보너스 점수를 받았어요!</div>
+    <button class="bonus-next" id="bonus-next" onclick="bonusNext()">다음 문제 →</button>
   </div>
 </div>
 
@@ -565,19 +588,23 @@ function updateFoundCounter(){
 }
 
 function autoAdvance(){
-  const token=qToken;
-  // 남은 타일 클릭 잠그기 + 안내
+  // 남은 타일 클릭 잠그기
   document.querySelectorAll('.eq-tile:not(.locked)').forEach(t=>t.classList.add('locked'));
   // 정답 모두 찾기 보너스: +2점
-  let bonusMsg='';
-  if(window.Hub){ const r=Hub.addScore('pokemon',2); bonusMsg=' 🎉 모두 찾기 +2점!'; if(r.newEggs>0) showToast('🥚 부화 가능! 도감에서 부화하세요'); }
+  if(window.Hub){ const r=Hub.addScore('pokemon',2); if(r.newEggs>0) showToast('🥚 부화 가능! 도감에서 부화하세요'); }
   updateHUD();
   const fb=document.getElementById('feedback-bar');
   fb.className='feedback-bar fb-ok';
-  fb.textContent=((qIndex+1>=TOTAL)?'정답을 모두 찾았어요! 결과를 볼게요 🎉':'정답을 모두 찾았어요! 다음 문제로 →')+bonusMsg;
-  const nb=document.getElementById('next-btn');
-  nb.textContent='다음 →';
-  setTimeout(()=>{ if(token===qToken) handleNext(); },1100);
+  fb.textContent='정답을 모두 찾았어요! 🎉 +2점 보너스';
+  // 보너스 팝업을 보여주고, "다음 문제"를 눌러야 넘어간다
+  const last=(qIndex+1>=TOTAL);
+  document.getElementById('bonus-sub').textContent = last ? '마지막 문제까지 완료! 결과를 볼까요?' : '한 문제의 정답을 모두 찾아 보너스 +2점!';
+  document.getElementById('bonus-next').textContent = last ? '결과 보기 →' : '다음 문제 →';
+  document.getElementById('bonus-modal').classList.add('show');
+}
+function bonusNext(){
+  document.getElementById('bonus-modal').classList.remove('show');
+  handleNext();
 }
 
 function handleNext(){
