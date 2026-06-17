@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>피카츄 달리기 — 수학 러너</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#3a2e2a; --paper:#fffdf7; --sun:#ffcb05; --sun-d:#f4b400; --shadow:rgba(58,46,42,.18); }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family:'Gaegu',sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#bfe9b0 0%,#7fc98e 55%,#4f9d6b 100%);
+    background-attachment:fixed; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:14px; user-select:none;
+  }
+
+  /* 좌상단 게임 목록 버튼 (허브 공통 규약) */
+  .home-btn{
+    position:fixed; top:12px; left:12px; z-index:1000;
+    font-family:'Jua',sans-serif; font-size:16px; text-decoration:none;
+    color:var(--ink); background:var(--paper); border:3px solid var(--ink);
+    border-radius:18px; padding:7px 14px; box-shadow:3px 3px 0 var(--shadow); transition:transform .1s;
+  }
+  .home-btn:active{ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--shadow); }
+  @media (max-width:480px){ .home-btn{ font-size:14px; padding:5px 11px; top:8px; left:8px; } }
+
+  .wrap{ width:100%; max-width:780px; }
+
+  /* HUD (우측 정렬 배지) */
+  .hud{ display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin:0 0 8px; min-height:42px; padding-left:120px; }
+  .badge{ font-family:'Jua',sans-serif; background:var(--paper); border:3px solid var(--ink); border-radius:14px;
+    padding:5px 12px; font-size:18px; box-shadow:2px 2px 0 var(--shadow); display:inline-flex; align-items:center; gap:6px; }
+  .badge b{ color:var(--sun-d); }
+  .badge.lives{ letter-spacing:1px; }
+  .badge.dex{ cursor:pointer; background:var(--sun); }
+  .badge.dex:active{ transform:translate(1px,1px); }
+
+  .stage{ position:relative; width:100%; border-radius:18px; overflow:hidden; box-shadow:0 14px 36px rgba(0,0,0,.35); border:4px solid var(--ink); }
+  canvas{ display:block; width:100%; height:auto; touch-action:none; background:#8fd; }
+
+  .footer{ position:absolute; right:12px; bottom:12px; pointer-events:none; }
+  .ctrl{ width:54px; height:54px; border-radius:50%; background:rgba(20,20,20,.78); color:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; pointer-events:auto; box-shadow:0 6px 14px rgba(0,0,0,.3); }
+  .ctrl svg{ width:24px; height:24px; fill:#fff; }
+
+  .gameover-label{ display:none; }
+
+  .overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .overlay.dim{ background:rgba(30,50,35,.45); }
+  .spinner{ width:54px; height:54px; border-radius:50%; border:5px solid rgba(255,255,255,.5); border-top-color:#fff; animation:spin 1s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .ovbox{ background:rgba(255,255,255,.97); border-radius:20px; padding:18px 20px 20px; box-shadow:0 12px 30px rgba(0,0,0,.3); max-width:420px; width:100%; text-align:center; }
+  .ovbox h2{ font-family:'Jua',sans-serif; margin:0 0 4px; font-size:26px; color:#7a5400; }
+  .ovsub{ font-size:15px; color:#6b5b3a; margin:0 0 12px; }
+  .optlabel{ font-family:'Jua',sans-serif; font-size:14px; color:#7a5400; margin:0 0 8px; }
+  .chips{ display:flex; gap:8px; justify-content:center; }
+  .chip{ flex:1; font-family:'Jua',sans-serif; border:3px solid #e3c766; background:#fff8e3; color:#7a5400; font-size:17px; padding:12px 6px; border-radius:14px; cursor:pointer; transition:transform .05s; }
+  .chip:active{ transform:scale(.96); }
+  .chip.selected{ background:var(--sun); border-color:var(--sun-d); color:#5a3e00; }
+  .chip small{ display:block; font-family:'Gaegu',sans-serif; font-weight:700; font-size:12px; opacity:.85; margin-top:3px; }
+  .rules{ margin:12px 0 0; font-size:15px; line-height:1.6; color:#4a3d22; }
+  .rules b{ color:#7a5400; }
+  .btnrow{ display:flex; gap:10px; justify-content:center; margin-top:16px; }
+  .playbtn{ font-family:'Jua',sans-serif; border:none; cursor:pointer; background:linear-gradient(180deg,#56b04f,#3f9a38); color:#fff;
+    font-size:19px; padding:12px 26px; border-radius:14px; box-shadow:0 5px 0 #2f7a2a; transition:transform .05s,box-shadow .05s; }
+  .playbtn.alt{ background:linear-gradient(180deg,#ffcb05,#f4b400); color:#5a3e00; box-shadow:0 5px 0 #c89400; }
+  .playbtn:active{ transform:translateY(3px); box-shadow:0 2px 0 #2f7a2a; }
+  .playbtn.alt:active{ box-shadow:0 2px 0 #c89400; }
+  .hide{ display:none !important; }
+</style>
+</head>
+<body>
+  <a href="../index.html" class="home-btn" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
+
+  <div class="wrap">
+    <div class="hud">
+      <div class="badge">점수 <b id="score">0</b></div>
+      <div class="badge lives" id="lives">❤️❤️❤️</div>
+      <div class="badge">🥚 <b id="eggPts">0</b></div>
+      <button class="badge dex" id="dexBtn" title="포켓몬 도감">📖 도감</button>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="760" height="420"></canvas>
+
+      <div class="overlay dim" id="overlay">
+        <div class="spinner" id="spinner"></div>
+
+        <div class="ovbox hide" id="startCard">
+          <h2 id="cardTitle">⚡ 피카츄 달리기 ⚡</h2>
+          <p class="ovsub" id="cardSub">난이도를 골라줘!</p>
+          <div class="settings" id="settingsBlock">
+            <div class="optlabel">난이도</div>
+            <div class="chips" data-group="diff">
+              <button class="chip selected" data-val="normal">보통<small>두 자리 ± 한 자리</small></button>
+              <button class="chip" data-val="hard">어려움<small>두 자리 ± · 곱셈</small></button>
+            </div>
+            <p class="rules">⚡ <b>맞는 식</b>은 점프(탭)해서 <b>먹어요</b> → +점수<br>
+              ❌ <b>틀린 식</b>은 먹으면 <b>하트</b>를 잃어요 (가만히 두면 지나가요)</p>
+          </div>
+          <div class="btnrow"><button class="playbtn" id="playBtn">시작하기</button></div>
+        </div>
+
+        <div class="ovbox hide" id="overCard">
+          <h2>게임 끝! 🏁</h2>
+          <p class="ovsub" id="overScore">점수 0 · 최고 0</p>
+          <div class="btnrow">
+            <button class="playbtn" id="againBtn">다시하기</button>
+            <button class="playbtn alt" id="changeBtn">난이도 바꾸기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="ctrl" id="ctrlBtn" title="일시정지">
+          <svg id="ctrlIcon" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="../hub.js"></script>
+<script>
+(function(){
+  const cv = document.getElementById('game');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  (function setDPR(){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    cv.width = W*dpr; cv.height = H*dpr;
+    cv.style.aspectRatio = (W/H).toString();
+    ctx.scale(dpr,dpr);
+  })();
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+
+  // ----- layout (가로형) -----
+  const GROUND_Y = 335;     // 피카츄 발 y
+  const PIKA_X   = 130;     // 피카츄 x(고정)
+  const PIKA_H   = 86;      // 피카츄 높이
+  const EAT_Y    = 150;     // 수식이 떠 있는 높이(중심)
+  const ITEM_H   = 46;
+  const GRAVITY  = 1300, JUMP_V = 620;
+  const EAT_FEET = GROUND_Y - 95;  // 발이 이보다 위면 먹을 수 있는 점프 상태
+
+  // ----- assets -----
+  const bgImg = new Image();   bgImg.src = 'forest.png';
+  const pikaImg = new Image(); pikaImg.src = 'pikachu.png';
+  let PFW=0, PFH=0, PDRAW_W=0;
+
+  // ----- difficulty (속도 낮춰 읽을 시간 확보) -----
+  const DIFFS = {
+    normal: { ops:['+','-'],     digits:'twoone', speed:140, gap:350 },
+    hard:   { ops:['+','-','×'], digits:'two',    speed:170, gap:360 },
+  };
+  let difficulty = 'normal';
+
+  // ----- state -----
+  let state='loading';
+  let score=0, lives=3;
+  let highScore = parseInt(localStorage.getItem('pikachu_run_hi')||'0',10) || 0;
+  let speed=140, spawnGap=350;
+  let items=[], parts=[];
+  let pika={ y:GROUND_Y, vy:0, grounded:true };
+  let runT=0, frame=0, bgOffset=0, invuln=0, hurtFlash=0, lastTime=0;
+
+  const $ = id => document.getElementById(id);
+  const elScore=$('score'), elLives=$('lives'), elEgg=$('eggPts');
+  const overlay=$('overlay'), spinner=$('spinner');
+  const startCard=$('startCard'), settingsBlock=$('settingsBlock'), cardTitle=$('cardTitle'), cardSub=$('cardSub');
+  const playBtn=$('playBtn'), overCard=$('overCard'), overScore=$('overScore'), againBtn=$('againBtn'), changeBtn=$('changeBtn');
+  const ctrlBtn=$('ctrlBtn'), ctrlIcon=$('ctrlIcon'), dexBtn=$('dexBtn');
+  const ICON_PAUSE='<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+  const ICON_REPLAY='<path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>';
+
+  function refreshEgg(){ elEgg.textContent = window.Hub ? Hub.available() : 0; }
+  refreshEgg();
+  document.addEventListener('hubchange', refreshEgg);
+
+  // ----- math -----
+  function rndInt(n){ return Math.floor(Math.random()*n); }
+  function operand(two){ return two ? (10+rndInt(90)) : (1+rndInt(9)); }
+  function wrongAnswer(ans){
+    const mag=Math.abs(ans);
+    let delta=1+rndInt(mag<10?3 : mag<30?4 : 9);
+    if(mag>=50 && Math.random()<0.5) delta+=10;
+    let w=ans+(Math.random()<0.5?-delta:delta);
+    if(w<0) w=ans+delta; if(w===ans) w=ans+1; return w;
+  }
+  function makeProblem(){
+    const d=DIFFS[difficulty]; const op=d.ops[rndInt(d.ops.length)];
+    let a,b,ans,sym;
+    if(op==='×'){ a=2+rndInt(8); b=2+rndInt(8); sym='×'; ans=a*b; }
+    else {
+      if(d.digits==='two'){ a=operand(true); b=operand(true); }
+      else if(d.digits==='twoone'){ a=operand(true); b=operand(false); }
+      else { a=operand(false); b=operand(false); }
+      if(op==='+'){ sym='+'; ans=a+b; } else { sym='−'; if(a<b){const t=a;a=b;b=t;} ans=a-b; }
+    }
+    let isTrue=Math.random()<0.5;
+    let shown=isTrue?ans:wrongAnswer(ans); isTrue=(shown===ans);
+    return { text:a+sym+b+'='+shown, isTrue };
+  }
+  function spawnItem(x){ const p=makeProblem(); items.push({ x:x, y:EAT_Y, text:p.text, isTrue:p.isTrue, resolved:false, w:0 }); }
+
+  function resetGame(){
+    const d=DIFFS[difficulty];
+    score=0; lives=3; speed=d.speed; spawnGap=d.gap;
+    items=[]; parts=[]; invuln=0; hurtFlash=0;
+    pika={ y:GROUND_Y, vy:0, grounded:true };
+    elScore.textContent='0'; updateLives();
+    spawnItem(W+40); spawnItem(W+40+spawnGap);
+  }
+  function updateLives(){ elLives.textContent='❤️'.repeat(lives)+'🤍'.repeat(3-lives); }
+
+  // ----- input / flow -----
+  function jump(){ if(state!=='playing') return; if(pika.grounded){ pika.vy=-JUMP_V; pika.grounded=false; } }
+  function setCtrl(kind){ ctrlIcon.innerHTML = kind==='pause'?ICON_PAUSE:ICON_REPLAY; ctrlBtn.title = kind==='pause'?'일시정지':'다시하기'; }
+  function showCard(which){
+    overlay.classList.remove('hide'); overlay.classList.add('dim');
+    spinner.classList.add('hide');
+    startCard.classList.toggle('hide', which!=='start');
+    overCard.classList.toggle('hide', which!=='over');
+  }
+  function gotoStart(){
+    state='ready'; difficulty=difficulty||'easy';
+    cardTitle.textContent='⚡ 피카츄 달리기 ⚡'; cardSub.textContent='난이도를 골라줘!';
+    settingsBlock.classList.remove('hide'); playBtn.textContent='시작하기';
+    showCard('start'); resetGame(); render();
+  }
+  function startPlay(){ overlay.classList.add('hide'); state='playing'; lastTime=0; setCtrl('pause'); requestAnimationFrame(loop); }
+  function togglePauseOrReplay(){
+    if(state==='over'){ resetGame(); startPlay(); return; }
+    if(state==='playing'){
+      state='paused';
+      cardTitle.textContent='일시정지'; cardSub.textContent=''; settingsBlock.classList.add('hide'); playBtn.textContent='계속하기';
+      showCard('start'); return;
+    }
+    if(state==='paused'){ settingsBlock.classList.remove('hide'); overlay.classList.add('hide'); state='playing'; lastTime=0; requestAnimationFrame(loop); }
+  }
+  $('stage').addEventListener('pointerdown',(e)=>{
+    if(ctrlBtn.contains(e.target)) return;
+    if(!overlay.classList.contains('hide')) return;   // 카드/스피너 떠 있으면 점프 안 함
+    if(state==='playing') jump();
+  });
+  window.addEventListener('keydown',(e)=>{
+    if(e.code==='Space'||e.code==='ArrowUp'){ e.preventDefault();
+      if(state==='over'){ resetGame(); startPlay(); }
+      else if(state==='paused') togglePauseOrReplay();
+      else if(state==='ready') startPlay();
+      else jump();
+    }
+  });
+  playBtn.addEventListener('click',(e)=>{ e.stopPropagation(); if(state==='ready') startPlay(); else if(state==='paused') togglePauseOrReplay(); });
+  againBtn.addEventListener('click',(e)=>{ e.stopPropagation(); resetGame(); startPlay(); });
+  changeBtn.addEventListener('click',(e)=>{ e.stopPropagation(); gotoStart(); });
+  ctrlBtn.addEventListener('click',(e)=>{ e.stopPropagation(); togglePauseOrReplay(); });
+  dexBtn.addEventListener('click',(e)=>{ e.stopPropagation(); if(window.Hub) Hub.openDex(); });
+  document.querySelectorAll('.chips').forEach(group=>{
+    group.addEventListener('click',(e)=>{ const btn=e.target.closest('.chip'); if(!btn) return; e.stopPropagation();
+      group.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected')); btn.classList.add('selected'); difficulty=btn.dataset.val; });
+  });
+
+  // ----- draw -----
+  function rrect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+  function drawBackground(){
+    if(bgImg.complete && bgImg.naturalWidth){
+      const scale=H/bgImg.naturalHeight, bw=bgImg.naturalWidth*scale;
+      let x=-(bgOffset%bw); while(x<W){ ctx.drawImage(bgImg,x,0,bw,H); x+=bw; }
+    } else { ctx.fillStyle='#8fd'; ctx.fillRect(0,0,W,H); }
+  }
+  function drawPika(){
+    // 그림자
+    ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(PIKA_X, GROUND_Y+4, 30, 8, 0, 0, Math.PI*2); ctx.fill();
+    if(invuln>0 && Math.floor(invuln*12)%2===0) return;
+    const top=pika.y-PIKA_H;
+    if(pikaImg.complete && PFH){
+      const idx = pika.grounded ? (frame%8) : 5; const col=idx%4, row=Math.floor(idx/4);
+      ctx.drawImage(pikaImg, col*PFW, row*PFH, PFW, PFH, PIKA_X-PDRAW_W/2, top, PDRAW_W, PIKA_H);
+    } else { ctx.fillStyle='#ffcb05'; ctx.beginPath(); ctx.arc(PIKA_X, pika.y-28, 28, 0, Math.PI*2); ctx.fill(); }
+  }
+  function drawItem(it){
+    ctx.font='800 26px Jua, "Malgun Gothic", sans-serif';
+    const w=ctx.measureText(it.text).width+30; it.w=w;
+    const x=it.x-w/2, y=it.y-ITEM_H/2;
+    rrect(x,y,w,ITEM_H,14); ctx.fillStyle='rgba(28,30,40,.92)'; ctx.fill();
+    ctx.lineWidth=3; ctx.strokeStyle='#fff'; rrect(x,y,w,ITEM_H,14); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(it.text, it.x, it.y+2);
+  }
+  function drawParticles(){ for(const p of parts){ ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.font='700 '+p.size+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.ch,p.x,p.y); } ctx.globalAlpha=1; }
+  function render(){
+    drawBackground();
+    for(const it of items) drawItem(it);
+    drawPika(); drawParticles();
+    if(hurtFlash>0){ ctx.fillStyle='rgba(220,40,40,'+(hurtFlash*0.45)+')'; ctx.fillRect(0,0,W,H); }
+  }
+
+  // ----- update -----
+  function popParticles(x,y,ch){ for(let i=0;i<8;i++) parts.push({ x:x,y:y, vx:(Math.random()-0.5)*180, vy:-60-Math.random()*160, ch:ch, size:18+rndInt(12), life:0.7, max:0.7 }); }
+  function eatItem(it){
+    it.resolved=true;
+    if(it.isTrue){
+      score++; elScore.textContent=score; popParticles(it.x,it.y,'⭐');
+      if(window.Hub) Hub.addScore('pikarun',1);   // 부화점 연동
+    } else {
+      if(invuln<=0){ lives--; updateLives(); invuln=1.0; hurtFlash=1; popParticles(it.x,it.y,'💥'); if(lives<=0) endGame(); }
+    }
+  }
+  function endGame(){
+    state='over';
+    if(score>highScore){ highScore=score; localStorage.setItem('pikachu_run_hi',String(highScore)); }
+    overScore.textContent='점수 '+score+' · 최고 '+highScore;
+    setCtrl('replay'); showCard('over');
+  }
+  function update(dt){
+    if(!pika.grounded){ pika.vy+=GRAVITY*dt; pika.y+=pika.vy*dt; if(pika.y>=GROUND_Y){ pika.y=GROUND_Y; pika.vy=0; pika.grounded=true; } }
+    runT+=dt; if(runT>0.08){ runT=0; frame=(frame+1)%8; }
+    if(invuln>0) invuln-=dt; if(hurtFlash>0) hurtFlash-=dt*2;
+
+    const dx=speed*dt; bgOffset+=dx;
+    const canEat = !pika.grounded && pika.y<=EAT_FEET;
+    for(const it of items){ it.x-=dx;
+      if(!it.resolved && canEat){ const dxo=Math.abs(it.x-PIKA_X); if(dxo < (it.w/2 + PDRAW_W*0.45)) eatItem(it); }
+    }
+    items = items.filter(it=> it.x>-200 && !it.resolved);
+    for(const p of parts){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=400*dt; p.life-=dt; }
+    parts = parts.filter(p=>p.life>0);
+
+    const last = items.length ? items[items.length-1].x : 0;
+    if(last < W - spawnGap){
+      spawnItem(W+30);
+      speed = Math.min(speed+3, DIFFS[difficulty].speed+60);
+      spawnGap = Math.max(300, spawnGap-2);
+    }
+  }
+  function loop(t){ if(state!=='playing') return; if(!lastTime) lastTime=t; let dt=(t-lastTime)/1000; lastTime=t; if(dt>0.05) dt=0.05; update(dt); render(); requestAnimationFrame(loop); }
+  function staticTick(){ if(state!=='playing') render(); requestAnimationFrame(staticTick); }
+
+  // ----- boot -----
+  function imgLoaded(img){ return new Promise(res=>{ if(img.complete && img.naturalWidth){res();} else { img.onload=()=>res(); img.onerror=()=>res(); } }); }
+  Promise.all([imgLoaded(bgImg), imgLoaded(pikaImg)]).then(()=>{
+    if(pikaImg.naturalWidth){ PFW=pikaImg.naturalWidth/4; PFH=pikaImg.naturalHeight/2; PDRAW_W=PFW*(PIKA_H/PFH); }
+    gotoStart();
+  });
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(()=>{ if(state!=='playing') render(); }); }
+  render();
+  requestAnimationFrame(staticTick);
+})();
+</script>
+</body>
+</html>
