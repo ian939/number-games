@@ -1108,6 +1108,19 @@ document.getElementById('map-free').addEventListener('click', () => {
   loadPuzzle(fi >= 0 ? fi : 0);
 });
 
+// ===== 브라우저 확대/축소 제스처 차단 =====
+// 게임은 고정 레이아웃이라 페이지가 확대되면 조각/슬롯 조작이 깨진다.
+// 더블탭·트랙패드 핀치(Ctrl+휠)·Safari 핀치·키보드 줌을 모두 막는다.
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+  document.addEventListener(ev, e => e.preventDefault()));
+document.addEventListener('dblclick', e => e.preventDefault());
+document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+window.addEventListener('keydown', e => {
+  // '0'(원래 크기 복귀)은 막지 않아 비상 탈출구로 남겨둔다
+  if ((e.ctrlKey || e.metaKey) && ['+', '-', '='].includes(e.key)) e.preventDefault();
+});
+
 buildTabs();
 buildSelectGrid();
 resize();
