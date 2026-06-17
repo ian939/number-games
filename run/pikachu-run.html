@@ -136,13 +136,13 @@
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
 
   // ----- layout (가로형) -----
-  const GROUND_Y = 335;     // 피카츄 발 y
+  const GROUND_Y = 380;     // 피카츄 발 y (바닥에 더 가깝게)
   const PIKA_X   = 130;     // 피카츄 x(고정)
   const PIKA_H   = 86;      // 피카츄 높이
   const EAT_Y    = 150;     // 수식이 떠 있는 높이(중심)
   const ITEM_H   = 46;
-  const GRAVITY  = 1300, JUMP_V = 620;
-  const EAT_FEET = GROUND_Y - 95;  // 발이 이보다 위면 먹을 수 있는 점프 상태
+  const GRAVITY  = 1300, JUMP_V = 710;  // 더 높이 점프해서 위 수식까지 닿게
+  const EAT_FEET = GROUND_Y - 130;  // 발이 이보다 위면 먹을 수 있는 점프 상태
 
   // ----- assets -----
   const bgImg = new Image();   bgImg.src = 'forest.png';
