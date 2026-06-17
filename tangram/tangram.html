@@ -1076,12 +1076,14 @@ function fmtTime(ms) {
 function stageWin() {
   winInfo = null;
   if (gameMode !== 'stage' || !activeStage) return;
-  const unlocked = getUnlocked();
-  if (activeStage >= unlocked && unlocked < 40) setUnlocked(unlocked + 1);
-  // 공용 점수 적립 — 스테이지 클리어마다 +5점 (10점=알 1마리 부화)
+  const raw = parseInt(localStorage.getItem(STAGE_KEY) || '1', 10) || 1; // 클램프 전 프런티어
+  const firstClear = activeStage >= raw;                 // 처음 깨는 스테이지면 true, 이미 깬 거 재도전이면 false
+  if (firstClear && raw <= 40) setUnlocked(raw + 1);      // 다음 단계 해금(40 클리어 표시 위해 41까지 허용)
+  // 공용 점수 적립 — 처음 클리어 +5점, 이미 깬 스테이지 재도전은 +3점 (10점=알 1마리 부화)
+  const pts = firstClear ? 5 : 3;
   let newEggs = 0;
-  if (window.Hub) { newEggs = Hub.addScore('tangram', 5).newEggs || 0; }
-  winInfo = { pts: 5, newEggs };
+  if (window.Hub) { newEggs = Hub.addScore('tangram', pts).newEggs || 0; }
+  winInfo = { pts, newEggs };
 }
 
 // 승리 카드 내용 채우기(점수·소요시간·진행도) + 버튼 라벨/동작 모드별 설정
@@ -1094,7 +1096,7 @@ function fillWinCard() {
   const ls = document.getElementById('win-list');
   if (time) time.textContent = '⏱️ 걸린 시간 ' + fmtTime(elapsed);
   if (gameMode === 'stage') {
-    if (reward) { reward.style.display = ''; reward.textContent = winInfo && winInfo.newEggs > 0 ? '🥚 +5점 · 알을 부화할 수 있어요!' : '⭐ +5점 획득!'; }
+    if (reward) { const pts = (winInfo && winInfo.pts) || 5; reward.style.display = ''; reward.textContent = winInfo && winInfo.newEggs > 0 ? ('🥚 +' + pts + '점 · 알을 부화할 수 있어요!') : ('⭐ +' + pts + '점 획득!'); }
     if (prog) { prog.style.display = ''; prog.textContent = '모험 진행 ' + (getUnlocked() - 1) + ' / 40 완료'; }
     if (nx) nx.textContent = '🗺️ 지도로 가기';
     if (ls) ls.textContent = '🔁 다시 풀기';
