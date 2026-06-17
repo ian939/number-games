@@ -139,7 +139,12 @@
     animation: pop .35s cubic-bezier(.2,1.4,.5,1);
   }
   @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  #win .win-emoji { font-size: 56px; line-height: 1; margin-bottom: 2px; animation: winBounce .6s cubic-bezier(.2,1.5,.4,1); }
+  #win .win-poke {
+    width: 112px; height: 112px; object-fit: contain; margin-bottom: 2px;
+    image-rendering: pixelated;            /* 도감 도트 그대로 선명하게 */
+    filter: drop-shadow(0 5px 8px rgba(0,0,0,.18));
+    animation: winBounce .6s cubic-bezier(.2,1.5,.4,1);
+  }
   @keyframes winBounce { 0% { transform: scale(0) rotate(-20deg);} 60% { transform: scale(1.2) rotate(8deg);} 100% { transform: scale(1) rotate(0);} }
   #win h1 { font-size: 32px; color: var(--toss-blue); margin-bottom: 2px; }
   #win p { font-size: 17px; color: var(--gray); margin-bottom: 16px; }
@@ -256,7 +261,7 @@
 <!-- ===== 축하 ===== -->
 <div id="win">
   <div class="card-win">
-    <div class="win-emoji">🎉</div>
+    <img class="win-poke" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" alt="피카츄" draggable="false">
     <h1>잘했어요!</h1>
     <p>칠교를 완성했어요</p>
     <div class="win-reward" id="win-reward">⭐ +5점 획득!</div>
