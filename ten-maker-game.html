@@ -104,6 +104,12 @@
 
   /* ---------- PLAY ---------- */
   .question{text-align:center;font-size:30px;margin:10px 0 4px;min-height:40px;}
+  /* 세로셈 (stage 4·5) */
+  .vsum{display:inline-grid;grid-template-columns:auto auto;justify-content:center;align-items:center;column-gap:16px;row-gap:2px;font-family:'Jua',sans-serif;font-size:50px;color:var(--ink);line-height:1.05;}
+  .vsum .op{justify-self:start;color:var(--coral-d);}
+  .vsum .n{justify-self:end;letter-spacing:2px;}
+  .vsum .q{justify-self:end;color:var(--coral-d);letter-spacing:2px;}
+  .vsum .line{grid-column:1 / -1;height:5px;background:var(--ink);border-radius:3px;margin:4px 0;}
   .question b{color:var(--coral-d);}
   .progress{height:14px;background:#fff;border:3px solid var(--ink);border-radius:20px;overflow:hidden;margin:4px 0 10px;}
   .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--mint),var(--sky));width:0;transition:width .4s;}
@@ -164,6 +170,8 @@
   /* answer choices */
   .choices{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:auto;padding-top:10px;}
   .choices.four{grid-template-columns:repeat(2,1fr);}
+  .choices.six{grid-template-columns:repeat(3,1fr);gap:10px;}
+  .choices.six .choice{font-size:30px;padding:14px 0;border-radius:18px;}
   .choice{
     border:4px solid var(--ink);border-radius:22px;padding:18px 0;font-size:38px;font-family:'Jua';
     cursor:pointer;background:#fff;box-shadow:4px 5px 0 var(--shadow);transition:transform .1s, box-shadow .1s;
@@ -172,6 +180,8 @@
   .choice:nth-child(2){background:#d9f6f3;}
   .choice:nth-child(3){background:#ffe0e0;}
   .choice:nth-child(4){background:#dcebff;}
+  .choice:nth-child(5){background:#e9e0ff;}
+  .choice:nth-child(6){background:#ffe6f2;}
   .choice:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--shadow);}
   .choice.correct{background:var(--mint)!important;animation:bounce .5s;}
   .choice.wrong{background:#e7ddd2!important;opacity:.55;}
@@ -358,21 +368,40 @@
     return {type:4, a, b, ans:sum, q:`${a} + ${b} = <b>?</b>`, choices: makeChoices(sum,10,18)};
   }
   function genTwoPlusOne(){
-    // 두 자리(10~49) + 한 자리(2~9), 받아올림은 자연스럽게 섞임
-    const a = (1+rnd(4))*10 + rnd(10);   // 10~49
-    const b = 2+rnd(8);                  // 2~9
-    const sum = a+b;
-    return {type:5, a, b, ans:sum, q:`${a} + ${b} = <b>?</b>`};
+    // 두 자리 ± 한 자리 (빼기는 받아내림 없음)
+    if(Math.random()<0.5){
+      const a = (1+rnd(4))*10 + rnd(10);   // 10~49
+      const b = 2+rnd(8);                  // 2~9
+      return {type:5, op:'+', a, b, ans:a+b};
+    } else {
+      const b = 2+rnd(8);                  // 2~9
+      const t = 1+rnd(4);                  // 십의 자리 1~4
+      const o = b+rnd(10-b);               // 일의 자리 b~9 (받아내림 없음)
+      const a = t*10+o;
+      return {type:5, op:'-', a, b, ans:a-b};
+    }
   }
   function genTwoPlusTwo(){
-    // 두 자리 + 두 자리, 합이 두 자리(20~98)로 유지
-    let a, b, sum;
-    do {
-      a = (1+rnd(4))*10 + rnd(10);   // 10~49
-      b = (1+rnd(4))*10 + rnd(10);   // 10~49
-      sum = a+b;
-    } while(sum<25);
-    return {type:6, a, b, ans:sum, q:`${a} + ${b} = <b>?</b>`};
+    // 두 자리 ± 두 자리 (덧셈 합 두자리, 뺄셈 받아내림 없음)
+    if(Math.random()<0.5){
+      let a, b, sum;
+      do {
+        a = (1+rnd(4))*10 + rnd(10);   // 10~49
+        b = (1+rnd(4))*10 + rnd(10);   // 10~49
+        sum = a+b;
+      } while(sum<25);
+      return {type:6, op:'+', a, b, ans:sum};
+    } else {
+      let tB, tA, oB, oA, a, b;
+      do {
+        tB = 1+rnd(4);            // 1~4
+        tA = tB+rnd(6-tB);        // tB~5
+        oB = rnd(10);             // 0~9
+        oA = oB+rnd(10-oB);       // oB~9 (받아내림 없음)
+        a = tA*10+oA; b = tB*10+oB;
+      } while(a-b<1);
+      return {type:6, op:'-', a, b, ans:a-b};
+    }
   }
   function makeChoices(ans, lo, hi){
     const set = new Set([ans]);
@@ -383,12 +412,13 @@
     }
     return shuffle([...set]);
   }
-  // 두 자리 답용 보기: 받아올림 실수(±10), 한 끗 차이(±1,±2) 등 그럴듯한 오답
-  function makeChoices2(ans){
+  // 두 자리 답용 보기: 자리 실수(±10), 한 끗 차이(±1,±2) 등 그럴듯한 오답. count개 생성
+  function makeChoices2(ans, count){
+    count = count || 4;
     const set = new Set([ans]);
-    const cand = shuffle([ans-10, ans+10, ans-1, ans+1, ans-2, ans+2, ans-9, ans+9, ans-11]);
-    for(const v of cand){ if(set.size>=4) break; if(v>0 && v<=120) set.add(v); }
-    while(set.size<4){ let v = ans + (rnd(11)-5); if(v>0) set.add(v); }
+    const cand = shuffle([ans-10, ans+10, ans-1, ans+1, ans-2, ans+2, ans-9, ans+9, ans-11, ans+11, ans-20, ans+20]);
+    for(const v of cand){ if(set.size>=count) break; if(v>0 && v<=120) set.add(v); }
+    while(set.size<count){ let v = ans + (rnd(21)-10); if(v>0 && v<=120) set.add(v); }
     return shuffle([...set]);
   }
 
@@ -434,7 +464,7 @@
 
   function renderChoices(choices, ans){
     const ch=$("#choicesEl"); ch.innerHTML="";
-    ch.className = "choices" + (choices.length===4?" four":"");
+    ch.className = "choices" + (choices.length===6?" six":(choices.length===4?" four":""));
     choices.forEach(v=>{
       const b=document.createElement("button"); b.className="choice"; b.textContent=v;
       b.onclick=()=>answer(b, v===ans, ch);
@@ -517,25 +547,36 @@
     },520);
   }
 
-  // ----- Stage 4 & 5 : 힌트 보기 → 자리값 분해 (십은 위로, 일은 아래로 점선 연결) -----
+  // ----- Stage 4 & 5 : 세로셈 + 6보기 (덧셈·뺄셈) / 힌트 = 자리값 분해 -----
   function renderColumns(){
-    const {a,b,ans}=current;
+    const {a,b,op,ans}=current;
+    const sign = op==='-' ? '−' : '+';
     const frames=$("#framesEl"); frames.innerHTML="";
     const wrap=document.createElement("div"); wrap.className="hint-wrap";
     const btn=document.createElement("button"); btn.className="hint-btn"; btn.innerHTML="💡 힌트 보기";
-    btn.onclick=()=>{ hintUsed=true; frames.innerHTML=""; frames.appendChild(buildDecomp(a,b)); };
+    btn.onclick=()=>{ hintUsed=true; frames.innerHTML=""; frames.appendChild(buildDecomp(a,b,op)); };
     wrap.appendChild(btn); frames.appendChild(wrap);
 
-    $("#questionEl").innerHTML = current.q;
-    $("#stepHint").innerHTML = `먼저 스스로 풀어 보고, 어려우면 <b>힌트</b>를 눌러 봐!`;
-    renderChoices(makeChoices2(ans), ans);
+    // 세로셈 표시
+    $("#questionEl").innerHTML =
+      `<div class="vsum">`
+      + `<span class="op"></span><span class="n">${a}</span>`
+      + `<span class="op">${sign}</span><span class="n">${b}</span>`
+      + `<span class="line"></span>`
+      + `<span class="op"></span><span class="q">?</span>`
+      + `</div>`;
+    $("#stepHint").innerHTML = `세로로 계산해 봐! 어려우면 <b>힌트</b>를 눌러 봐.`;
+    renderChoices(makeChoices2(ans,6), ans);
   }
 
-  // 분해 다이어그램 생성
-  function buildDecomp(a,b){
+  // 분해 다이어그램 생성 (덧셈/뺄셈 — 뺄셈은 받아내림 없음)
+  function buildDecomp(a,b,op){
+    op = op || '+';
+    const sign = op==='-' ? '−' : '+';
     const tA=Math.floor(a/10)*10, oA=a%10;
     const tB=Math.floor(b/10)*10, oB=b%10;
-    const tensSum=tA+tB, onesSum=oA+oB, total=tensSum+onesSum;
+    const tensRes = op==='-' ? tA-tB : tA+tB;
+    const onesRes = op==='-' ? oA-oB : oA+oB;
 
     const box=document.createElement("div"); box.className="decomp";
     const SVGNS="http://www.w3.org/2000/svg";
@@ -546,7 +587,7 @@
     // 위: 십의 자리
     const top=document.createElement("div"); top.className="box tens";
     top.innerHTML = tB>0
-      ? `<span id="tt0">${tA}</span> <span class="plus">+</span> <span id="tt1">${tB}</span> = <b>${tensSum}</b>`
+      ? `<span id="tt0">${tA}</span> <span class="plus">${sign}</span> <span id="tt1">${tB}</span> = <b>${tensRes}</b>`
       : `<span id="tt0">${tA}</span>`;
 
     // 가운데: 원래 식 (십=파랑, 일=주황)
@@ -555,15 +596,15 @@
     const numB = b>=10
       ? `<span class="num"><span class="dg t" id="mt1">${Math.floor(b/10)}</span><span class="dg o" id="mo1">${oB}</span></span>`
       : `<span class="num"><span class="dg o" id="mo1">${oB}</span></span>`;
-    mid.innerHTML = `${numA}<span class="plus">+</span>${numB}`;
+    mid.innerHTML = `${numA}<span class="plus">${sign}</span>${numB}`;
 
     // 아래: 일의 자리
     const bot=document.createElement("div"); bot.className="box ones";
-    bot.innerHTML=`<span id="bo0">${oA}</span> <span class="plus">+</span> <span id="bo1">${oB}</span> = <b>${onesSum}</b>`;
+    bot.innerHTML=`<span id="bo0">${oA}</span> <span class="plus">${sign}</span> <span id="bo1">${oB}</span> = <b>${onesRes}</b>`;
 
     // 합치기
     const fin=document.createElement("div"); fin.className="final";
-    fin.innerHTML=`${tensSum} + ${onesSum} = <b>?</b>`;
+    fin.innerHTML=`${tensRes} + ${onesRes} = <b>?</b>`;
 
     box.appendChild(top); box.appendChild(mid); box.appendChild(bot); box.appendChild(fin);
 

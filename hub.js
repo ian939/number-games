@@ -131,12 +131,13 @@
   // 구버전 호환
   function addStars(gameId, n){ return addScore(gameId, n); }
 
-  /* 점수 10점으로 부화 → 포켓몬 id 반환(부족하면 null) */
+  /* 점수 10점으로 부화 → 포켓몬 id 반환(부족하면 null). 같은 포켓몬은 최대 3마리까지만 카운트 */
+  const MAX_DUP=3;
   function hatch(){
     if(available()<HATCH_COST) return null;
     state.spent+=HATCH_COST;
     const id=pickPokemon();
-    state.caught[id]=(state.caught[id]||0)+1;
+    state.caught[id]=Math.min(MAX_DUP,(state.caught[id]||0)+1);
     save();
     return id;
   }
@@ -160,10 +161,16 @@
 .hub-hatch-btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:#3a2e2a;background:#ffd23f;border:none;border-radius:14px;padding:10px 18px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:inherit;}
 .hub-hatch-btn:disabled{filter:grayscale(.7);opacity:.55;cursor:default;box-shadow:none;}
 .hub-dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;padding:8px 14px 16px;overflow-y:auto;}
-.hub-cell{background:#0f3460;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:4px;border:1px solid rgba(255,255,255,.06);min-height:90px;}
+.hub-cell{position:relative;background:#0f3460;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:4px;border:1px solid rgba(255,255,255,.06);min-height:90px;}
 .hub-cell.has{border-color:rgba(255,210,63,.35);cursor:pointer;}
 .hub-cell.has:hover{transform:scale(1.05);border-color:#ffd23f;}
-.hub-cell img{width:54px;height:54px;image-rendering:pixelated;}
+.hub-cell img{width:54px;height:54px;image-rendering:pixelated;position:relative;z-index:1;}
+.hub-cell.max{border-color:transparent;box-shadow:0 0 0 2px rgba(255,255,255,.35),0 0 16px 2px rgba(255,210,63,.55);animation:hubShine 1.8s ease-in-out infinite;background:linear-gradient(135deg,#3a2a5e,#0f3460 60%);}
+.hub-cell.max::before{content:"";position:absolute;inset:-1px;border-radius:12px;padding:2px;background:linear-gradient(120deg,#ff6b6b,#ffd23f,#4ecdc4,#5aa9ff,#a78bfa,#ff6b6b);background-size:300% 300%;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:hubRainbow 3s linear infinite;pointer-events:none;}
+.hub-cell.max::after{content:"✨";position:absolute;top:2px;right:5px;font-size:14px;z-index:2;animation:hubTwinkle 1.5s ease-in-out infinite;}
+@keyframes hubShine{0%,100%{filter:saturate(1) brightness(1)}50%{filter:saturate(1.5) brightness(1.18)}}
+@keyframes hubRainbow{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+@keyframes hubTwinkle{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.2)}}
 .hub-cell img.sil{filter:brightness(0) opacity(.18);}
 .hub-cell .n{font-size:11px;color:#9ab;}
 .hub-cell .nm{font-size:12px;color:#e8e8e8;text-align:center;}
@@ -261,13 +268,14 @@
     grid.innerHTML='';
     for(let id=1;id<=151;id++){
       const has=state.caught[id];
-      const cell=document.createElement('div'); cell.className='hub-cell'+(has?' has':'');
+      const maxed=has>=MAX_DUP;
+      const cell=document.createElement('div'); cell.className='hub-cell'+(has?' has':'')+(maxed?' max':'');
       const img=document.createElement('img'); img.className=has?'':'sil'; img.src=SPRITE(id); img.alt=POKEMON_KR[id]||''; img.loading='lazy';
       const num=document.createElement('div'); num.className='n'; num.textContent='#'+String(id).padStart(3,'0');
       const nm=document.createElement('div'); nm.className='nm'; nm.textContent=has?POKEMON_KR[id]:'???';
       cell.append(img,num,nm);
       if(has&&state.caught[id]>1){const c2=document.createElement('div');c2.className='n';c2.textContent='x'+state.caught[id];cell.appendChild(c2);}
-      if(has){ cell.title=POKEMON_KR[id]+' 상세보기'; cell.onclick=()=>openDetail(id,{}); }
+      if(has){ cell.title=POKEMON_KR[id]+(maxed?' (최대 3마리!)':' 상세보기'); cell.onclick=()=>openDetail(id,{}); }
       grid.appendChild(cell);
     }
   }
