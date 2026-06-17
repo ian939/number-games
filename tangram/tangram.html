@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>칠교놀이</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --toss-blue: #3182F6;
@@ -20,10 +21,14 @@
   html, body {
     width: 100%; height: 100%; overflow: hidden;
     background: var(--bg); color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    font-family: 'Gaegu', -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    font-weight: 700;
     touch-action: none;
-    letter-spacing: -0.02em;
   }
+  /* ===== 숫자놀이터 공통 폰트(통일감): 제목·버튼=Jua, 본문=Gaegu ===== */
+  h1, .btn, .badge, .tab, #puzzle-name, #map-free, #map-head h1, .node,
+  .home-btn, #win h1, .win-reward, .win-stat { font-family: 'Jua', sans-serif; }
+  #hint, #select-head p, #win p, .win-prog { font-family: 'Gaegu', sans-serif; font-weight: 700; }
 
   /* ===== 공통 버튼 (토스 톤) ===== */
   .btn {
@@ -128,16 +133,32 @@
     background: rgba(25,31,40,0.45);
   }
   #win .card-win {
-    background: #fff; border-radius: 28px; padding: 36px 32px; text-align: center;
-    width: 320px; max-width: 86vw;
+    background: #fff; border-radius: 28px; padding: 30px 28px; text-align: center;
+    width: 340px; max-width: 88vw;
     box-shadow: 0 20px 50px rgba(0,0,0,0.25);
     animation: pop .35s cubic-bezier(.2,1.4,.5,1);
   }
   @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  #win h1 { font-size: 30px; font-weight: 800; margin-bottom: 4px; }
-  #win p { font-size: 16px; color: var(--gray); margin-bottom: 24px; }
+  #win .win-emoji { font-size: 56px; line-height: 1; margin-bottom: 2px; animation: winBounce .6s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes winBounce { 0% { transform: scale(0) rotate(-20deg);} 60% { transform: scale(1.2) rotate(8deg);} 100% { transform: scale(1) rotate(0);} }
+  #win h1 { font-size: 32px; color: var(--toss-blue); margin-bottom: 2px; }
+  #win p { font-size: 17px; color: var(--gray); margin-bottom: 16px; }
+  /* 보상 칩(점수) — 노란 강조로 "얻었다" 느낌 */
+  .win-reward {
+    display: inline-block; font-size: 21px; color: #C77700;
+    background: #FFF4D6; border: 2px solid #FFE08A; border-radius: 999px;
+    padding: 9px 20px; margin-bottom: 12px;
+    animation: rewardPulse 1.1s ease-in-out infinite;
+  }
+  @keyframes rewardPulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.06);} }
+  /* 소요시간 칩 */
+  .win-stat {
+    display: inline-block; font-size: 18px; color: var(--toss-blue);
+    background: #E8F1FE; border-radius: 12px; padding: 6px 16px; margin-bottom: 10px;
+  }
+  .win-prog { font-size: 16px; color: var(--gray); margin-bottom: 18px; }
   #win .win-btns { display: flex; flex-direction: column; gap: 10px; }
-  #win .btn { justify-content: center; font-size: 17px; }
+  #win .btn { justify-content: center; font-size: 18px; }
 
   /* ===== 스테이지 맵 화면 ===== */
   #map-screen { position: fixed; inset: 0; display: none; flex-direction: column; background: #0d1b2a; z-index: 6; }
@@ -235,11 +256,15 @@
 <!-- ===== 축하 ===== -->
 <div id="win">
   <div class="card-win">
-    <h1>🎉 잘했어요!</h1>
+    <div class="win-emoji">🎉</div>
+    <h1>잘했어요!</h1>
     <p>칠교를 완성했어요</p>
+    <div class="win-reward" id="win-reward">⭐ +5점 획득!</div>
+    <div class="win-stat" id="win-time">⏱️ 0:00</div>
+    <div class="win-prog" id="win-prog">모험 진행 0 / 40</div>
     <div class="win-btns">
-      <button class="btn primary" id="win-next">다음 그림 →</button>
-      <button class="btn ghost" id="win-list">목록으로</button>
+      <button class="btn primary" id="win-next">🗺️ 지도로 가기</button>
+      <button class="btn ghost" id="win-list">🔁 다시 풀기</button>
     </div>
   </div>
 </div>
@@ -533,6 +558,7 @@ function loadPuzzle(index) {
   pieces = TRAY.map(t => { const p = new Piece(t.id); p.x = t.x; p.y = t.y; p.rotation = 0; return p; });
   selected = null; dragging = null; hideRotateBtn();
   winEl.style.display = 'none';
+  stageStartTime = Date.now();   // 소요시간 측정 시작
   // 게임 화면으로 전환
   selectScreen.style.display = 'none';
   gameRoot.style.display = 'flex';
@@ -620,7 +646,7 @@ function checkWinFill() {
   const pd = offc.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
   let covered = 0;
   for (let p = 0, i = 3; p < silMask.length; p++, i += 4) if (silMask[p] && pd[i] > 128) covered++;
-  if (covered / silTotal >= 0.82) { fillSolved = true; setTimeout(() => { stageWin(); winEl.style.display = 'flex'; }, 250); }
+  if (covered / silTotal >= 0.82) { fillSolved = true; setTimeout(() => { stageWin(); fillWinCard(); winEl.style.display = 'flex'; }, 250); }
 }
 
 function backToList() {
@@ -687,7 +713,7 @@ function trySnapFreeplay(p) {
 }
 function checkWin() {
   if (!slots.length) return;
-  if (slots.every(s => s.filledBy)) setTimeout(() => { stageWin(); winEl.style.display = 'flex'; }, 250);
+  if (slots.every(s => s.filledBy)) setTimeout(() => { stageWin(); fillWinCard(); winEl.style.display = 'flex'; }, 250);
 }
 
 // ===== 입력 (Pointer Events) =====
@@ -784,11 +810,16 @@ document.getElementById('reset-btn').addEventListener('click', () => {
 });
 document.getElementById('list-btn').addEventListener('click', () => { gameMode === 'browse' ? backToList() : showMap(); });
 document.getElementById('win-next').addEventListener('click', () => {
-  if (gameMode === 'stage') { activeStage < 40 ? startStage(activeStage + 1) : showMap(); }
+  // 스테이지 모드: 지도로 나가 진행 상황(현재 단계)을 보고 다음 단계를 고른다
+  if (gameMode === 'stage') { showMap(); }
   else if (gameMode === 'browse') { loadPuzzle(currentPuzzle + 1); }
   else { showMap(); }
 });
-document.getElementById('win-list').addEventListener('click', () => { gameMode === 'browse' ? backToList() : showMap(); });
+document.getElementById('win-list').addEventListener('click', () => {
+  if (gameMode === 'browse') { backToList(); }
+  else if (gameMode === 'stage') { loadPuzzle(currentPuzzle); }   // 🔁 다시 풀기
+  else { showMap(); }
+});
 
 // ===== 렌더 =====
 function hexToRgba(hex, a) {
@@ -1028,17 +1059,45 @@ function updateHelpBtn() {
   }
 }
 
-// 승리 시 진행도 기록(스테이지 모드에서만) + 다음 버튼 라벨 갱신
+// 소요시간 측정 + 승리 카드 성과 표시
+let stageStartTime = 0;
+let winInfo = null;   // 스테이지 클리어 보상 {pts, newEggs}
+function fmtTime(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+// 승리 시 진행도 기록(스테이지 모드에서만) + 공용 점수 적립
 function stageWin() {
+  winInfo = null;
   if (gameMode !== 'stage' || !activeStage) return;
   const unlocked = getUnlocked();
   if (activeStage >= unlocked && unlocked < 40) setUnlocked(unlocked + 1);
-  const nx = document.getElementById('win-next');
-  if (nx) nx.textContent = activeStage < 40 ? '다음 단계 →' : '🗺️ 지도로';
   // 공용 점수 적립 — 스테이지 클리어마다 +5점 (10점=알 1마리 부화)
-  if (window.Hub) {
-    const r = Hub.addScore('tangram', 5);
-    Hub.toast(r.newEggs > 0 ? '🥚 알을 부화시킬 수 있어요!' : '⭐ +5점!');
+  let newEggs = 0;
+  if (window.Hub) { newEggs = Hub.addScore('tangram', 5).newEggs || 0; }
+  winInfo = { pts: 5, newEggs };
+}
+
+// 승리 카드 내용 채우기(점수·소요시간·진행도) + 버튼 라벨/동작 모드별 설정
+function fillWinCard() {
+  const elapsed = Date.now() - stageStartTime;
+  const time = document.getElementById('win-time');
+  const reward = document.getElementById('win-reward');
+  const prog = document.getElementById('win-prog');
+  const nx = document.getElementById('win-next');
+  const ls = document.getElementById('win-list');
+  if (time) time.textContent = '⏱️ 걸린 시간 ' + fmtTime(elapsed);
+  if (gameMode === 'stage') {
+    if (reward) { reward.style.display = ''; reward.textContent = winInfo && winInfo.newEggs > 0 ? '🥚 +5점 · 알을 부화할 수 있어요!' : '⭐ +5점 획득!'; }
+    if (prog) { prog.style.display = ''; prog.textContent = '모험 진행 ' + (getUnlocked() - 1) + ' / 40 완료'; }
+    if (nx) nx.textContent = '🗺️ 지도로 가기';
+    if (ls) ls.textContent = '🔁 다시 풀기';
+  } else {
+    if (reward) reward.style.display = 'none';
+    if (prog) prog.style.display = 'none';
+    if (nx) nx.textContent = gameMode === 'browse' ? '다음 그림 →' : '🗺️ 지도로';
+    if (ls) ls.textContent = '목록으로';
   }
 }
 
