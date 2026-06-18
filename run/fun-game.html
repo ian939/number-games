@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>펀 게임</title>
+<style>
+  :root{ --header1:#5bb0f5; --header2:#46a0ef; --hsbox:#dcecfb; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:#1b2433;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; padding:14px;
+  }
+  .phone{
+    width:100%; max-width:430px; background:#bfe3ff;
+    border-radius:26px; overflow:hidden;
+    box-shadow:0 24px 60px rgba(0,0,0,.45);
+    display:flex; flex-direction:column; user-select:none;
+  }
+  header{ background:linear-gradient(180deg,var(--header1),var(--header2)); padding:14px 16px 16px; position:relative; }
+  .title{ text-align:center; font-size:30px; font-weight:800; color:#111; letter-spacing:1px; margin:2px 0 14px; }
+  .close{
+    position:absolute; top:12px; right:14px; width:40px; height:40px;
+    border-radius:11px; background:#eaf4ff; border:3px solid #3a78c0;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .close::before,.close::after{ content:""; position:absolute; width:20px; height:4px; border-radius:2px; background:#3a78c0; }
+  .close::before{transform:rotate(45deg);}
+  .close::after{transform:rotate(-45deg);}
+  .scores{display:flex; align-items:center; justify-content:center; gap:10px; font-size:18px; font-weight:700; color:#123;}
+  .scorebox{ min-width:96px; text-align:center; padding:8px 10px; border-radius:12px; font-size:22px; font-weight:800; color:#111; background:#fff; box-shadow:inset 0 0 0 2px rgba(255,255,255,.6); }
+  .scorebox.high{background:var(--hsbox); box-shadow:inset 0 0 0 2px #b9d6f5;}
+  .stage{position:relative; width:100%;}
+  canvas{display:block; width:100%; height:auto; touch-action:none;}
+  .footer{ position:absolute; left:0; right:0; bottom:14px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .ctrl{ width:62px; height:62px; border-radius:50%; background:#2b2b2b; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; pointer-events:auto; box-shadow:0 6px 14px rgba(0,0,0,.3); }
+  .ctrl svg{width:26px; height:26px; fill:#fff;}
+  .gameover-label{ position:absolute; left:0; right:0; top:44%; transform:translateY(-50%); text-align:center; font-size:40px; font-weight:800; color:#222; text-shadow:0 2px 0 #fff; pointer-events:none; display:none; }
+  .overlay{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:18px; color:#0c2b52; }
+  .overlay.dim{background:rgba(120,180,240,.30);}
+  .spinner{ width:64px; height:64px; border-radius:50%; border:5px solid rgba(255,255,255,.55); border-top-color:#fff; animation:spin 1s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .ovbox{ background:rgba(255,255,255,.94); border-radius:18px; padding:20px 20px 22px; box-shadow:0 10px 30px rgba(0,0,0,.18); max-width:360px; width:100%; }
+  .ovbox h2{margin:0 0 14px; font-size:24px; color:#16407a;}
+  .optgroup{margin-bottom:12px;}
+  .optlabel{font-size:13px; font-weight:800; color:#16407a; margin-bottom:6px; text-align:left;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; justify-content:center;}
+  .chip{ border:2px solid #c5d8ef; background:#eef5fd; color:#274c79; font-weight:700; font-size:14px; padding:8px 12px; border-radius:11px; cursor:pointer; transition:transform .04s; }
+  .chip:active{transform:scale(.96);}
+  .chip.selected{background:#3f9adf; border-color:#3f9adf; color:#fff;}
+  .rules{ margin:12px 0 0; font-size:14px; line-height:1.55; color:#28456b; }
+  .rules b{color:#16407a;}
+  .playbtn{ margin-top:16px; border:none; cursor:pointer; background:linear-gradient(180deg,#56b04f,#3f9a38); color:#fff; font-size:19px; font-weight:800; padding:13px 30px; border-radius:14px; box-shadow:0 5px 0 #2f7a2a; transition:transform .05s, box-shadow .05s; }
+  .playbtn:active{transform:translateY(3px); box-shadow:0 2px 0 #2f7a2a;}
+  .hide{display:none !important;}
+  @media (prefers-reduced-motion: reduce){ .spinner{animation:none;} }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <header>
+      <div class="close" title="처음으로"></div>
+      <div class="title">펀 게임</div>
+      <div class="scores">
+        <span>높은 점수:</span>
+        <div class="scorebox high" id="highScore">0</div>
+        <span>점수:</span>
+        <div class="scorebox" id="score">0</div>
+      </div>
+    </header>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="420" height="600"></canvas>
+      <div class="gameover-label" id="goLabel">게임 끝</div>
+
+      <div class="overlay dim" id="overlay">
+        <div class="spinner" id="spinner"></div>
+        <div class="ovbox hide" id="startCard">
+          <h2 id="cardTitle">펀 게임</h2>
+          <div class="settings" id="settingsBlock">
+            <div class="optgroup">
+              <div class="optlabel">연산</div>
+              <div class="chips" data-group="op">
+                <button class="chip selected" data-val="add">＋ 더하기</button>
+                <button class="chip" data-val="sub">－ 빼기</button>
+                <button class="chip" data-val="mul">× 곱셈</button>
+              </div>
+            </div>
+            <div class="optgroup">
+              <div class="optlabel">자릿수</div>
+              <div class="chips" data-group="digit">
+                <button class="chip selected" data-val="one">한 자리</button>
+                <button class="chip" data-val="twoone">두 자리 &amp; 한 자리</button>
+                <button class="chip" data-val="two">두 자리</button>
+              </div>
+            </div>
+            <p class="rules">✅ 맞는 식은 <b>부딪혀</b> 먹어요 &nbsp;&nbsp; ❌ 틀린 식은 <b>피해요</b><br>
+              <span style="font-size:13px;color:#5a7290;">공중 표지판은 점프해서 닿고, 바닥 표지판은 점프로 넘어가요</span></p>
+          </div>
+          <button class="playbtn" id="playBtn">시작하기</button>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="ctrl" id="ctrlBtn" title="일시정지">
+          <svg id="ctrlIcon" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const cv = document.getElementById('game');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  (function setDPR(){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    cv.width = W*dpr; cv.height = H*dpr;
+    cv.style.aspectRatio = (W/H).toString();
+    ctx.scale(dpr,dpr);
+  })();
+
+  const HORIZON = 360;
+  const ROAD_TOP = 430, ROAD_BOT = 512;
+  const CAR_X = 112;
+  const GROUND_CY = 446;
+  const AIR_SIGN_Y = 150;
+  const GROUND_SIGN_Y = 452;
+  const LANE_MID = 300;
+  const GRAVITY = 1150, JUMP_V = 760;
+
+  let state = 'loading';
+  let score = 0, highScore = 0;
+  let speed = 150;
+  let gates = [];
+  let car = { cy: GROUND_CY, vy: 0, grounded: true, wheelAngle: 0 };
+  let scenery = { trees: [], dashOffset: 0, far: 0 };
+  let lastTime = 0;
+  let spawnGapPx = 340;
+  let settings = { op:'add', digit:'one' };
+
+  const elHigh = document.getElementById('highScore');
+  const elScore = document.getElementById('score');
+  const overlay = document.getElementById('overlay');
+  const spinner = document.getElementById('spinner');
+  const startCard = document.getElementById('startCard');
+  const settingsBlock = document.getElementById('settingsBlock');
+  const cardTitle = document.getElementById('cardTitle');
+  const playBtn = document.getElementById('playBtn');
+  const ctrlBtn = document.getElementById('ctrlBtn');
+  const ctrlIcon = document.getElementById('ctrlIcon');
+  const goLabel = document.getElementById('goLabel');
+
+  const ICON_PAUSE = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+  const ICON_REPLAY = '<path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>';
+
+  function seedScenery(){
+    scenery.trees = [];
+    for(let i=0;i<8;i++) scenery.trees.push({ x: i*120 + Math.random()*60, big: Math.random()>0.5 });
+  }
+  seedScenery();
+
+  // ----- math problems by difficulty -----
+  function operand(twoDigit){
+    return twoDigit ? (10 + Math.floor(Math.random()*90)) : (1 + Math.floor(Math.random()*9));
+  }
+  function wrongAnswer(ans){
+    const mag = Math.abs(ans);
+    let delta = 1 + Math.floor(Math.random()* (mag<10?3 : mag<30?4 : 9));
+    if(mag>=50 && Math.random()<0.5) delta += 10;
+    let w = ans + (Math.random()<0.5 ? -delta : delta);
+    if(w < 0) w = ans + delta;
+    if(w === ans) w = ans + 1;
+    return w;
+  }
+  function makeProblem(){
+    let a,b;
+    if(settings.digit==='one'){ a=operand(false); b=operand(false); }
+    else if(settings.digit==='two'){ a=operand(true); b=operand(true); }
+    else { a=operand(true); b=operand(false); } // 두 자리 & 한 자리
+
+    let ans, sym;
+    if(settings.op==='add'){ sym='+'; ans=a+b; }
+    else if(settings.op==='sub'){ sym='\u2212'; if(a<b){const t=a;a=b;b=t;} ans=a-b; }
+    else { sym='\u00D7'; ans=a*b; }
+
+    const expr = a+sym+b;
+    let isTrue = Math.random()<0.5;
+    let shown;
+    if(isTrue) shown = ans;
+    else { shown = wrongAnswer(ans); if(shown===ans) shown=ans+1; }
+    isTrue = (shown===ans);
+    return { text: expr+'='+shown, isTrue };
+  }
+
+  function spawnGate(x){
+    const p = makeProblem();
+    gates.push({
+      x:x, lane: (Math.random()<0.5?'air':'ground'),
+      text:p.text, isTrue:p.isTrue, scored:false,
+      color:'#1c1c1c', lineColor:'#1c1c1c'
+    });
+  }
+
+  function resetGame(){
+    score = 0; speed = 150; spawnGapPx = 340;
+    gates = [];
+    car = { cy: GROUND_CY, vy:0, grounded:true, wheelAngle:0 };
+    seedScenery();
+    elScore.textContent = '0';
+    goLabel.style.display = 'none';
+    spawnGate(W + 80);
+    spawnGate(W + 80 + 360);
+  }
+
+  // ----- input -----
+  function jump(){
+    if(state==='ready'){ startPlay(); return; }
+    if(state!=='playing') return;
+    if(car.grounded){ car.vy = -JUMP_V; car.grounded = false; }
+  }
+  function startPlay(){
+    overlay.classList.add('hide');
+    state='playing'; lastTime=0; setCtrl('pause');
+    requestAnimationFrame(loop);
+  }
+  function setCtrl(kind){
+    ctrlIcon.innerHTML = kind==='pause' ? ICON_PAUSE : ICON_REPLAY;
+    ctrlBtn.title = kind==='pause' ? '일시정지' : '다시하기';
+  }
+  function gotoStart(){
+    state='ready';
+    overlay.classList.remove('hide'); overlay.classList.add('dim');
+    spinner.classList.add('hide'); startCard.classList.remove('hide');
+    settingsBlock.classList.remove('hide');
+    cardTitle.textContent='펀 게임'; playBtn.textContent='시작하기';
+    resetGame(); render();
+  }
+  function togglePauseOrReplay(){
+    if(state==='over'){ resetGame(); startPlay(); return; }
+    if(state==='playing'){
+      state='paused';
+      overlay.classList.remove('hide'); spinner.classList.add('hide');
+      startCard.classList.remove('hide'); settingsBlock.classList.add('hide');
+      cardTitle.textContent='일시정지'; playBtn.textContent='계속하기';
+      return;
+    }
+    if(state==='paused'){ overlay.classList.add('hide'); state='playing'; lastTime=0; requestAnimationFrame(loop); }
+  }
+
+  document.getElementById('stage').addEventListener('pointerdown',(e)=>{
+    if(ctrlBtn.contains(e.target)) return;
+    if(startCard.contains(e.target) && !startCard.classList.contains('hide')) return;
+    if(state==='paused' || state==='ready') return;
+    jump();
+  });
+  window.addEventListener('keydown',(e)=>{
+    if(e.code==='Space' || e.code==='ArrowUp'){
+      e.preventDefault();
+      if(state==='over'){ resetGame(); startPlay(); }
+      else if(state==='paused') togglePauseOrReplay();
+      else if(state==='ready') startPlay();
+      else jump();
+    }
+  });
+  playBtn.addEventListener('click',(e)=>{
+    e.stopPropagation();
+    if(state==='ready') startPlay();
+    else if(state==='paused') togglePauseOrReplay();
+  });
+  ctrlBtn.addEventListener('click',(e)=>{ e.stopPropagation(); togglePauseOrReplay(); });
+  document.querySelector('.close').addEventListener('click',(e)=>{ e.stopPropagation(); gotoStart(); });
+
+  // difficulty chip selection
+  document.querySelectorAll('.chips').forEach(group=>{
+    group.addEventListener('click',(e)=>{
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      e.stopPropagation();
+      group.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
+      btn.classList.add('selected');
+      settings[group.dataset.group] = btn.dataset.val;
+    });
+  });
+
+  // ----- drawing -----
+  function rrect(x,y,w,h,r){
+    ctx.beginPath(); ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+  function drawBackground(){
+    let g = ctx.createLinearGradient(0,0,0,HORIZON);
+    g.addColorStop(0,'#a9dcff'); g.addColorStop(1,'#eef8ff');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,HORIZON);
+
+    ctx.fillStyle='rgba(150,140,220,0.30)';
+    const fo = scenery.far % 90;
+    for(let i=-1;i<7;i++){
+      const bx = i*90 - fo; const bh = 70 + ((i*53)%5)*12;
+      ctx.fillRect(bx, HORIZON-bh, 46, bh);
+      ctx.beginPath(); ctx.moveTo(bx+10,HORIZON-bh); ctx.lineTo(bx+23,HORIZON-bh-22); ctx.lineTo(bx+36,HORIZON-bh); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle='rgba(150,150,210,0.40)';
+    const mo = (scenery.far*1.4) % 200;
+    for(let i=-1;i<5;i++){
+      const mx = i*200 - mo;
+      ctx.beginPath(); ctx.moveTo(mx,HORIZON); ctx.lineTo(mx+100,HORIZON-90); ctx.lineTo(mx+200,HORIZON); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle='#b3e364'; ctx.fillRect(0,HORIZON-2,W,ROAD_TOP-HORIZON+4);
+
+    ctx.fillStyle='#9aa0a6'; ctx.fillRect(0,ROAD_TOP,W,ROAD_BOT-ROAD_TOP);
+    ctx.fillStyle='#c7ccd1'; ctx.fillRect(0,ROAD_TOP,W,4);
+    ctx.fillStyle='#7e848a'; ctx.fillRect(0,ROAD_BOT-4,W,4);
+    ctx.fillStyle='#eef1f4';
+    const dashY=(ROAD_TOP+ROAD_BOT)/2-3; const off=scenery.dashOffset%56;
+    for(let x=-56+off;x<W;x+=56) ctx.fillRect(x,dashY,30,6);
+
+    ctx.fillStyle='#8ed149'; ctx.fillRect(0,ROAD_BOT,W,H-ROAD_BOT);
+    for(const t of scenery.trees) drawTree(t.x, ROAD_TOP-6, t.big);
+  }
+  function drawTree(x,baseY,big){
+    const s = big?1:0.7;
+    ctx.fillStyle='#b5793f'; ctx.fillRect(x-4*s, baseY-26*s, 8*s, 28*s);
+    ctx.fillStyle='#5fb83a';
+    for(const p of [[-12,-30,14],[12,-30,14],[0,-44,17]]){ ctx.beginPath(); ctx.arc(x+p[0]*s,baseY+p[1]*s,p[2]*s,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle='#6cc94a'; ctx.beginPath(); ctx.arc(x,baseY-36*s,12*s,0,Math.PI*2); ctx.fill();
+  }
+  function drawSign(x,cy,text,color){
+    ctx.font='700 19px -apple-system,"Malgun Gothic",sans-serif';
+    const padX=12,h=30; const w=ctx.measureText(text).width+padX*2;
+    rrect(x-w/2,cy-h/2,w,h,8); ctx.fillStyle=color; ctx.fill();
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(text,x,cy+1);
+  }
+  function drawGate(g){
+    if(g.lane==='air'){
+      ctx.strokeStyle=g.lineColor; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(g.x,0); ctx.lineTo(g.x,AIR_SIGN_Y-14); ctx.stroke();
+      drawSign(g.x,AIR_SIGN_Y,g.text,g.color);
+    } else {
+      drawSign(g.x,GROUND_SIGN_Y,g.text,g.color);
+    }
+  }
+  function drawCar(){
+    const x=CAR_X,y=car.cy;
+    ctx.save(); ctx.translate(x,y);
+    const wheelY=22,wr=17;
+    for(const wx of [-26,26]){
+      ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.arc(wx,wheelY,wr,0,Math.PI*2); ctx.fill();
+      ctx.save(); ctx.translate(wx,wheelY); ctx.rotate(car.wheelAngle);
+      ctx.fillStyle='#9aa0a6'; ctx.beginPath(); ctx.arc(0,0,wr*0.55,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#3a3f45';
+      for(let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath(); ctx.arc(Math.cos(a)*wr*0.5,Math.sin(a)*wr*0.5,2.4,0,Math.PI*2); ctx.fill(); }
+      ctx.beginPath(); ctx.arc(0,0,3,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle='#2350d8'; rrect(-42,-2,84,24,8); ctx.fill();
+    rrect(-22,-24,50,26,10); ctx.fill();
+    ctx.fillStyle='#46d2ff'; rrect(-15,-19,38,16,7); ctx.fill();
+    ctx.fillStyle='#2350d8'; ctx.fillRect(3,-19,4,16);
+    ctx.restore();
+  }
+
+  // ----- update -----
+  function evaluateGate(g){
+    g.scored = true;
+    const airborne = car.cy < LANE_MID;
+    const touched = (g.lane==='air' && airborne) || (g.lane==='ground' && !airborne);
+    if(touched){
+      if(g.isTrue){ score++; elScore.textContent=score; g.color='#1f9d34'; }
+      else { g.color='#e0352b'; g.lineColor='#e0352b'; endGame(); }
+    } else if(g.isTrue){
+      g.color='#9aa0a6'; g.lineColor='#9aa0a6'; // missed a correct one (no penalty)
+    }
+  }
+  function endGame(){
+    state='over';
+    highScore = Math.max(highScore, score);
+    elHigh.textContent = highScore;
+    goLabel.style.display='block'; setCtrl('replay');
+  }
+  function update(dt){
+    if(!car.grounded){
+      car.vy += GRAVITY*dt; car.cy += car.vy*dt;
+      if(car.cy>=GROUND_CY){ car.cy=GROUND_CY; car.vy=0; car.grounded=true; }
+    }
+    car.wheelAngle += speed*dt*0.06;
+
+    const dx = speed*dt;
+    scenery.dashOffset += dx; scenery.far += dx*0.25;
+    for(const t of scenery.trees){ t.x-=dx; if(t.x<-30){ t.x += 8*120 + Math.random()*40; t.big=Math.random()>0.5; } }
+
+    for(const g of gates){ g.x-=dx; if(!g.scored && g.x<=CAR_X) evaluateGate(g); }
+    gates = gates.filter(g=>g.x>-160);
+    const last = gates.length ? gates[gates.length-1].x : 0;
+    if(last < W - spawnGapPx){
+      spawnGate(W + 40);
+      speed = Math.min(speed+5, 300);
+      spawnGapPx = Math.max(290, 360 - (speed-150)*0.5);
+    }
+  }
+  function render(){ drawBackground(); for(const g of gates) drawGate(g); drawCar(); }
+  function loop(t){
+    if(state!=='playing') return;
+    if(!lastTime) lastTime=t;
+    let dt=(t-lastTime)/1000; lastTime=t; if(dt>0.05) dt=0.05;
+    update(dt); render(); requestAnimationFrame(loop);
+  }
+
+  // ----- boot -----
+  render();
+  setTimeout(()=>{ spinner.classList.add('hide'); startCard.classList.remove('hide'); state='ready'; resetGame(); render(); }, 1100);
+  function staticTick(){ if(state!=='playing') render(); requestAnimationFrame(staticTick); }
+  requestAnimationFrame(staticTick);
+})();
+</script>
+</body>
+</html>
