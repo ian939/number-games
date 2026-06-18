@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>전개도 접기 놀이 · 공간지각력 게임</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --bg1:#fef6ff; --bg2:#e9f4ff; --bg3:#fff7e6;
+    --ink:#33304a; --ink-soft:#6b6786;
+    --red:#ff5a6b; --blue:#3a8dff; --green:#27c46b; --yellow:#ffcb2e;
+    --purple:#9b5de5; --orange:#ff8c42; --pink:#ff6fb5; --cyan:#22d3c5;
+    --panel:#ffffff; --line:#eadffb;
+    --shadow: 0 14px 34px -14px rgba(120,90,200,.45);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; color:var(--ink);
+    font-family:'Jua', system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, var(--bg3), transparent 60%),
+      radial-gradient(1000px 700px at 95% 0%, var(--bg2), transparent 55%),
+      linear-gradient(180deg, var(--bg1), #f3f0ff 100%);
+    overflow-x:hidden;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:58px 14px 28px; display:flex; flex-direction:column; min-height:100vh;}
+
+  /* 좌상단 게임 목록 버튼 (허브 공통 규약) */
+  .home-btn{
+    position:fixed; top:12px; left:12px; z-index:1000;
+    font-family:'Jua',sans-serif; font-size:15px; text-decoration:none; color:var(--ink);
+    background:var(--panel); border:2px solid var(--line); border-radius:14px; padding:8px 14px; box-shadow:var(--shadow);
+  }
+  .home-btn:active{ transform:translate(1px,1px); }
+  @media (max-width:430px){ .home-btn{ font-size:13px; padding:6px 11px; top:8px; left:8px; } .wrap{ padding-top:50px; } }
+
+  /* Header */
+  header{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .brand{display:flex; align-items:center; gap:10px; min-width:0;}
+  .logo{
+    width:42px; height:42px; border-radius:13px; flex:none;
+    background:conic-gradient(from 40deg, var(--red), var(--yellow), var(--green), var(--blue), var(--purple), var(--red));
+    box-shadow:var(--shadow); position:relative;
+  }
+  .logo::after{content:""; position:absolute; inset:8px; border-radius:7px; background:#fff;}
+  .brand h1{font-size:20px; margin:0; line-height:1.05;}
+  .brand p{margin:1px 0 0; font-family:'Gaegu',cursive; color:var(--ink-soft); font-size:12.5px;}
+  .stats{display:flex; gap:8px; flex:none; flex-wrap:wrap; justify-content:flex-end;}
+  .chip{
+    background:var(--panel); border:2px solid var(--line); border-radius:14px;
+    padding:6px 10px; text-align:center; min-width:58px; box-shadow:0 6px 14px -10px rgba(120,90,200,.5);
+  }
+  .chip .v{font-size:18px; line-height:1;}
+  .chip .l{font-size:10.5px; font-family:'Gaegu',cursive; color:var(--ink-soft); margin-top:2px;}
+
+  /* Stage */
+  .stage{
+    margin-top:12px; position:relative; border-radius:24px; overflow:hidden;
+    background:linear-gradient(180deg,#ffffff, #faf6ff);
+    border:2px solid var(--line); box-shadow:var(--shadow);
+    aspect-ratio: 5/4;
+  }
+  #scene{width:100%; height:100%; display:block; touch-action:none; cursor:grab;}
+  #scene:active{cursor:grabbing;}
+  .stage .hint{
+    position:absolute; left:50%; bottom:10px; transform:translateX(-50%);
+    font-family:'Gaegu',cursive; font-size:12.5px; color:var(--ink-soft);
+    background:rgba(255,255,255,.78); padding:5px 12px; border-radius:999px; border:1.5px solid var(--line);
+    pointer-events:none; white-space:nowrap;
+  }
+  .stage .qtag{
+    position:absolute; top:10px; left:10px;
+    background:var(--yellow); color:#5a4500; font-size:12.5px;
+    padding:5px 12px; border-radius:999px; box-shadow:0 6px 12px -6px rgba(180,140,0,.6);
+  }
+
+  /* Question */
+  .question{margin:14px 2px 8px; font-size:19px; text-align:center; line-height:1.25;}
+
+  /* Options */
+  .options{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  .opt{
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background:var(--panel); border:2.5px solid var(--line); border-radius:18px;
+    padding:14px 12px; color:var(--ink);
+    box-shadow:0 8px 16px -12px rgba(120,90,200,.55); transition:transform .12s, box-shadow .12s, border-color .12s, background .12s;
+  }
+  .opt svg{width:72px; height:72px; flex:none;}
+  .opt:not(:disabled):hover{transform:translateY(-2px); border-color:#d9c4ff;}
+  .opt:not(:disabled):active{transform:translateY(0) scale(.98);}
+  .opt:disabled{cursor:default;}
+  .opt.correct{background:#eafff2; border-color:var(--green); color:#0f7a42;}
+  .opt.wrong{background:#fff0f1; border-color:var(--red); color:#b3203a;}
+  .opt.dim{opacity:.55;}
+
+  /* Result + controls */
+  .panelbar{
+    margin-top:12px; background:var(--panel); border:2px solid var(--line); border-radius:20px;
+    padding:12px 14px; box-shadow:var(--shadow);
+  }
+  .result{font-size:18px; text-align:center; margin:0 0 4px;}
+  .result small{display:block; font-family:'Gaegu',cursive; color:var(--ink-soft); font-size:13px; margin-top:3px;}
+  .foldrow{display:flex; align-items:center; gap:10px; margin-top:10px;}
+  .foldrow label{font-family:'Gaegu',cursive; font-size:13px; color:var(--ink-soft); white-space:nowrap;}
+  input[type=range]{flex:1; accent-color:var(--purple); height:26px;}
+  .btnrow{display:flex; gap:10px; margin-top:12px;}
+  button.act{
+    flex:1; border:none; cursor:pointer; font-family:'Jua'; font-size:17px; color:#fff;
+    padding:13px 14px; border-radius:16px; box-shadow:0 10px 18px -10px rgba(80,40,160,.6);
+    transition:transform .1s, filter .1s;
+  }
+  button.act:active{transform:translateY(1px) scale(.99);}
+  .btn-next{background:linear-gradient(180deg,#7c5cff,#6a3df0);}
+  .btn-play{background:linear-gradient(180deg,#ff9a3d,#ff7a2e); flex:none; min-width:120px;}
+  .btn-ghost{background:#fff; color:var(--ink); border:2px solid var(--line); box-shadow:none; flex:none; min-width:54px; font-size:18px;}
+  .hidden{display:none !important;}
+
+  /* Intro overlay */
+  .overlay{
+    position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center; padding:22px;
+    background:rgba(40,30,70,.32); backdrop-filter:blur(4px);
+  }
+  .card{
+    background:#fff; border-radius:26px; max-width:420px; width:100%; padding:26px 22px;
+    box-shadow:0 30px 60px -20px rgba(70,40,140,.5); text-align:center; border:2px solid var(--line);
+  }
+  .card h2{font-size:26px; margin:6px 0 2px;}
+  .card .sub{font-family:'Gaegu',cursive; color:var(--ink-soft); font-size:15px; margin:0 0 14px;}
+  .card .blocks{display:flex; justify-content:center; gap:8px; margin:6px 0 16px; font-size:30px;}
+  .card ol{text-align:left; font-family:'Gaegu',cursive; font-size:15.5px; color:#4a4663; margin:0 0 18px; padding-left:22px; line-height:1.6;}
+  .card .start{
+    width:100%; border:none; cursor:pointer; color:#fff; font-family:'Jua'; font-size:20px; padding:15px;
+    border-radius:18px; background:linear-gradient(180deg,#7c5cff,#6a3df0); box-shadow:0 14px 24px -12px rgba(80,40,160,.7);
+  }
+  .card .start:active{transform:translateY(1px);}
+
+  /* confetti */
+  .confetti{position:fixed; top:-20px; z-index:40; font-size:20px; pointer-events:none; animation:fall 1.5s ease-in forwards;}
+  @keyframes fall{0%{transform:translateY(0) rotate(0); opacity:1;} 100%{transform:translateY(105vh) rotate(540deg); opacity:0;}}
+
+  @media (max-width:430px){
+    .brand h1{font-size:17px;} .chip{min-width:50px; padding:5px 8px;}
+    .question{font-size:17px;} .opt{font-size:15px;}
+    .btn-play{min-width:104px; font-size:15px;}
+  }
+  @media (prefers-reduced-motion: reduce){ .confetti{display:none;} }
+
+  /* ===== Level 2 ===== */
+  .homebtn{
+    width:40px; height:40px; border-radius:13px; flex:none; cursor:pointer;
+    border:2px solid var(--line); background:var(--panel); color:var(--ink-soft);
+    font-size:18px; box-shadow:0 6px 14px -10px rgba(120,90,200,.5);
+  }
+  .homebtn:active{transform:translateY(1px);}
+  .l2grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px; align-items:start;}
+  @media (max-width:600px){ .l2grid{grid-template-columns:1fr;} }
+  .l2-left{display:flex; flex-direction:column; gap:6px;}
+  .l2cap{font-family:'Gaegu',cursive; font-size:13px; color:var(--ink-soft); text-align:center;}
+  .l2-right{
+    background:var(--panel); border:2px solid var(--line); border-radius:22px; padding:16px;
+    box-shadow:var(--shadow); display:flex; flex-direction:column;
+  }
+  .l2-right h3{margin:0 0 3px; font-size:18px;}
+  .l2-sub{margin:0 0 12px; font-family:'Gaegu',cursive; font-size:13.5px; color:var(--ink-soft); line-height:1.4;}
+  .pieces{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:6px; justify-content:center;}
+  .piece{
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    border:2px solid var(--line); border-radius:18px; padding:10px 12px; background:#fbf8ff; min-width:88px;
+  }
+  .pc-ico-wrap{cursor:pointer; line-height:0;} .pc-ico{width:50px; height:50px;}
+  .pc-name{font-size:12.5px; color:var(--ink-soft); font-family:'Gaegu',cursive;}
+  .pc-row{display:flex; align-items:center; gap:8px;}
+  .pc-cnt{font-size:20px; min-width:22px; text-align:center;}
+  .piece .pc-row button{
+    width:28px; height:28px; border-radius:50%; border:2px solid var(--line); background:#fff;
+    font-size:16px; line-height:1; cursor:pointer; color:var(--ink); padding:0;
+  }
+  .piece .pc-row button:active{transform:scale(.92);}
+  .l2-msg{font-family:'Gaegu',cursive; font-size:14px; min-height:21px; margin:10px 0 0; text-align:center; color:var(--ink-soft);}
+  .l2-msg.ok{color:var(--green);} .l2-msg.no{color:var(--red);}
+  #checkCount{margin-top:10px;}
+  .netwrap{
+    width:100%; aspect-ratio:1/1; background:#fbf8ff;
+    border:2px dashed var(--line); border-radius:18px; margin-bottom:12px; overflow:hidden;
+    touch-action:none;
+  }
+  #netsvg{width:100%; height:100%; display:block; touch-action:none; cursor:crosshair;}
+  .tray{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:4px;}
+  .tslot{
+    display:flex; flex-direction:column; align-items:center; gap:3px; cursor:grab;
+    border:2px solid var(--line); border-radius:16px; padding:7px 10px; background:#fff;
+    transition:transform .1s, border-color .1s, box-shadow .1s; touch-action:none; user-select:none;
+  }
+  .tslot:active{cursor:grabbing; transform:scale(.96);}
+  .tslot .pc-ico{width:40px; height:40px; pointer-events:none;}
+  .tslot.empty{opacity:.3; pointer-events:none;}
+  .ts-cnt{font-size:12.5px; font-family:'Gaegu',cursive; color:var(--ink-soft); pointer-events:none;}
+  .buildbtns{display:flex; gap:8px; justify-content:center; margin-top:8px;}
+  .mini{
+    border:2px solid var(--line); background:#fff; color:var(--ink-soft); cursor:pointer;
+    font-family:'Jua'; font-size:13px; padding:7px 12px; border-radius:14px;
+  }
+  .mini:active{transform:translateY(1px);}
+  .lvrow{display:flex; gap:10px; justify-content:center; margin-bottom:14px;}
+  .lvbtn{
+    flex:1; max-width:175px; padding:11px 8px; border-radius:16px; border:2.5px solid var(--line);
+    background:#fff; cursor:pointer; font-family:'Jua'; font-size:16px; color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .lvbtn span{font-size:11.5px; color:var(--ink-soft); font-family:'Gaegu',cursive;}
+  .lvbtn.active{border-color:var(--purple); background:#f6efff; box-shadow:0 8px 16px -10px rgba(150,90,230,.55);}
+  .lvbtn:active{transform:translateY(1px);}
+</style>
+</head>
+<body>
+<a href="index.html" class="home-btn" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>전개도 접기 놀이</h1>
+        <p>공간지각력 200% · 평면을 접으면?</p>
+      </div>
+    </div>
+    <div class="stats">
+      <button class="homebtn" id="homeBtn" title="처음으로 (레벨 다시 고르기)">↺</button>
+      <button class="homebtn" id="dexBtn" title="포켓몬 도감">📖</button>
+      <div class="chip"><div class="v" id="score">0</div><div class="l">⭐ 별</div></div>
+      <div class="chip"><div class="v" id="eggPts">0</div><div class="l">🥚 부화점</div></div>
+      <div class="chip"><div class="v" id="streak">0</div><div class="l">연속정답</div></div>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="qtag" id="qtag">문제 1</div>
+    <canvas id="scene"></canvas>
+    <div class="hint" id="hint">손가락으로 돌려보며 살펴보세요 🔄</div>
+  </div>
+
+  <div class="question" id="question">이 전개도를 접으면 어떤 입체도형이 될까요?</div>
+
+  <div class="options" id="options"></div>
+
+  <div class="panelbar hidden" id="resultbar">
+    <p class="result" id="result"></p>
+    <div class="foldrow">
+      <label>펼침</label>
+      <input type="range" id="foldSlider" min="0" max="100" value="100" />
+      <label>접힘</label>
+    </div>
+    <div class="btnrow">
+      <button class="act btn-ghost" id="soundBtn" title="소리 켜기/끄기">🔊</button>
+      <button class="act btn-play" id="playBtn">▶ 다시 접기</button>
+      <button class="act btn-next" id="nextBtn">다음 문제 →</button>
+    </div>
+  </div>
+
+  <!-- ===== 레벨 2: 입체 → 전개도 ===== -->
+  <div id="l2" class="hidden">
+    <div class="l2grid">
+      <div class="l2-left" id="l2left">
+        <div class="l2cap">완성된 입체예요 — 손가락으로 돌려보세요 🔄</div>
+      </div>
+      <div class="l2-right">
+        <div id="l2step1">
+          <h3>① 필요한 조각은 몇 개?</h3>
+          <p class="l2-sub">왼쪽 입체를 보고, 각 조각이 몇 개 필요한지 세어서 맞춰요. (조각을 탭하거나 +/− 로 조절)</p>
+          <div class="pieces" id="pieces"></div>
+          <button class="act btn-next" id="checkCount" style="width:100%">개수 확인하기</button>
+          <p class="l2-msg" id="cntMsg"></p>
+        </div>
+        <div id="l2step2" class="hidden">
+          <h3>② 조각을 끌어다 전개도 만들기</h3>
+          <p class="l2-sub">아래 조각을 board 위로 <b>드래그</b>해요. 모서리 가까이 가면 <b>알맞게 회전하며 착!</b> 붙어요. <b>접으면 이 입체가 되도록</b> 전개도를 만들어야 완성돼요!</p>
+          <div class="netwrap"><svg id="netsvg" viewBox="-8 -8 16 16" preserveAspectRatio="xMidYMid meet"></svg></div>
+          <div class="tray" id="tray"></div>
+          <div class="buildbtns">
+            <button class="mini" id="undoPiece">↩ 한 개 빼기</button>
+            <button class="mini" id="resetBoard">🗑 처음부터</button>
+          </div>
+          <p class="l2-msg" id="buildMsg"></p>
+          <button class="act btn-next hidden" id="l2next" style="width:100%; margin-top:8px">다음 문제 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Intro -->
+<div class="overlay" id="intro">
+  <div class="card">
+    <div class="blocks">🟥 🔺 🟦 🔺 🟨</div>
+    <h2>전개도 접기 놀이</h2>
+    <p class="sub">평평한 자석블록 도안이 입체로 변신해요!</p>
+    <ol>
+      <li><b>레벨 1</b> — 평면 전개도를 보고, 접으면 어떤 입체가 될지 맞혀요. <b>맞히면 ⭐1개!</b> (전체 19종 랜덤)</li>
+      <li><b>레벨 2</b> — 거꾸로! 완성된 입체를 보고 <b>필요한 조각 수</b>를 맞춘 뒤, 직접 <b>전개도를 만들어요.</b> <b>완성하면 ⭐2개!</b> (12종 랜덤)</li>
+    </ol>
+    <p class="sub" style="margin:10px 0 6px">레벨을 골라요</p>
+    <div class="lvrow" id="lvrow">
+      <button class="lvbtn active" data-level="l1">레벨 1<span>전개도 → 입체 · 문제당 ⭐1</span></button>
+      <button class="lvbtn" data-level="l2">레벨 2<span>입체 → 전개도 · 문제당 ⭐2</span></button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px">
+      <button class="start" id="startBtn" style="padding:13px 34px">시작! 🚀</button>
+    </div>
+  </div>
+</div>
+
+<script src="hub.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   전개도(평면) → 입체도형 접기 게임
+   - 각 면(face)을 경첩(hinge)으로 연결한 트리 구조로 접는다.
+   - hinge.quaternion 을 0→목표각으로 보간하면 평면이 입체로 접힘.
+   ============================================================ */
+
+const H = Math.sqrt(3) / 2;            // 한 변이 1인 정삼각형 높이
+const F = {
+  CUBE:  Math.PI / 2,                  // 90°
+  TETRA: Math.PI - Math.acos(1/3),     // ≈109.47°
+  OCTA:  Math.PI - Math.acos(-1/3),    // ≈70.53°
+  PYR:   Math.PI - Math.atan(Math.SQRT2), // 사각뿔 ≈125.26°
+  P120:  2*Math.PI/3,                  // 삼각기둥 옆면 120°
+  P90:   Math.PI / 2                   // 삼각기둥 마개 90°
+};
+const C = { red:'#ff5a6b', blue:'#3a8dff', green:'#27c46b', yellow:'#ffcb2e',
+            purple:'#9b5de5', orange:'#ff8c42', pink:'#ff6fb5', cyan:'#22d3c5' };
+
+// 각 도형: 이름 + 면 리스트. parent=루트면 null.
+const SHAPES = {
+  cube: {
+    name:'정육면체', faces:[
+      {id:'f0', type:'sq', parent:null, fold:0, color:C.blue,   verts:[[0,0],[1,0],[1,1],[0,1]]},
+      {id:'r',  type:'sq', parent:'f0', fold:F.CUBE, color:C.red,    verts:[[1,0],[2,0],[2,1],[1,1]], hinge:[[1,0],[1,1]]},
+      {id:'l',  type:'sq', parent:'f0', fold:F.CUBE, color:C.green,  verts:[[-1,0],[0,0],[0,1],[-1,1]], hinge:[[0,0],[0,1]]},
+      {id:'u',  type:'sq', parent:'f0', fold:F.CUBE, color:C.yellow, verts:[[0,1],[1,1],[1,2],[0,2]], hinge:[[0,1],[1,1]]},
+      {id:'d',  type:'sq', parent:'f0', fold:F.CUBE, color:C.purple, verts:[[0,-1],[1,-1],[1,0],[0,0]], hinge:[[0,0],[1,0]]},
+      {id:'b',  type:'sq', parent:'r',  fold:F.CUBE, color:C.orange, verts:[[2,0],[3,0],[3,1],[2,1]], hinge:[[2,0],[2,1]]},
+    ]
+  },
+  tetra: {
+    name:'정사면체(삼각뿔)', faces:[
+      {id:'t0', type:'tri', parent:null, fold:0, color:C.red,    verts:[[0,0],[1,0],[0.5,H]]},
+      {id:'tb', type:'tri', parent:'t0', fold:F.TETRA, color:C.blue,   verts:[[0,0],[1,0],[0.5,-H]], hinge:[[0,0],[1,0]]},
+      {id:'tl', type:'tri', parent:'t0', fold:F.TETRA, color:C.green,  verts:[[0,0],[0.5,H],[-0.5,H]], hinge:[[0,0],[0.5,H]]},
+      {id:'tr', type:'tri', parent:'t0', fold:F.TETRA, color:C.yellow, verts:[[1,0],[0.5,H],[1.5,H]], hinge:[[1,0],[0.5,H]]},
+    ]
+  },
+  pyramid: {
+    name:'사각뿔', faces:[
+      {id:'s0', type:'sq',  parent:null, fold:0, color:C.yellow, verts:[[0,0],[1,0],[1,1],[0,1]]},
+      {id:'pb', type:'tri', parent:'s0', fold:F.PYR, color:C.red,    verts:[[0,0],[1,0],[0.5,-H]], hinge:[[0,0],[1,0]]},
+      {id:'pt', type:'tri', parent:'s0', fold:F.PYR, color:C.blue,   verts:[[0,1],[1,1],[0.5,1+H]], hinge:[[0,1],[1,1]]},
+      {id:'pl', type:'tri', parent:'s0', fold:F.PYR, color:C.green,  verts:[[0,0],[0,1],[-H,0.5]], hinge:[[0,0],[0,1]]},
+      {id:'pr', type:'tri', parent:'s0', fold:F.PYR, color:C.purple, verts:[[1,0],[1,1],[1+H,0.5]], hinge:[[1,0],[1,1]]},
+    ]
+  },
+  prism: {
+    name:'삼각기둥', faces:[
+      {id:'q0', type:'sq',  parent:null, fold:0, color:C.cyan,   verts:[[0,0],[1,0],[1,1],[0,1]]},
+      {id:'qu', type:'sq',  parent:'q0', fold:F.P120, color:C.blue,  verts:[[0,1],[1,1],[1,2],[0,2]], hinge:[[0,1],[1,1]]},
+      {id:'qd', type:'sq',  parent:'q0', fold:F.P120, color:C.green, verts:[[0,-1],[1,-1],[1,0],[0,0]], hinge:[[0,0],[1,0]]},
+      {id:'cr', type:'tri', parent:'q0', fold:F.P90,  color:C.red,    verts:[[1,0],[1,1],[1+H,0.5]], hinge:[[1,0],[1,1]]},
+      {id:'cl', type:'tri', parent:'q0', fold:F.P90,  color:C.yellow, verts:[[0,0],[0,1],[-H,0.5]], hinge:[[0,0],[0,1]]},
+    ]
+  },
+  octa: {
+    name:'정팔면체', faces:[
+      {id:'o1', type:'tri', parent:null, fold:0, color:C.red,    verts:[[0,0],[1,0],[0.5,H]]},
+      {id:'o2', type:'tri', parent:'o1', fold:F.OCTA, color:C.blue,   verts:[[1,0],[0.5,H],[1.5,H]], hinge:[[1,0],[0.5,H]]},
+      {id:'o3', type:'tri', parent:'o2', fold:F.OCTA, color:C.green,  verts:[[1,0],[2,0],[1.5,H]], hinge:[[1,0],[1.5,H]]},
+      {id:'o4', type:'tri', parent:'o3', fold:F.OCTA, color:C.yellow, verts:[[2,0],[1.5,H],[2.5,H]], hinge:[[2,0],[1.5,H]]},
+      {id:'o5', type:'tri', parent:'o4', fold:F.OCTA, color:C.purple, verts:[[2,0],[3,0],[2.5,H]], hinge:[[2,0],[2.5,H]]},
+      {id:'o6', type:'tri', parent:'o5', fold:F.OCTA, color:C.orange, verts:[[3,0],[2.5,H],[3.5,H]], hinge:[[3,0],[2.5,H]]},
+      {id:'ot', type:'tri', parent:'o2', fold:F.OCTA, color:C.pink,   verts:[[0.5,H],[1.5,H],[1,2*H]], hinge:[[0.5,H],[1.5,H]]},
+      {id:'ob', type:'tri', parent:'o3', fold:F.OCTA, color:C.cyan,   verts:[[1,0],[2,0],[1.5,-H]], hinge:[[1,0],[2,0]]},
+    ]
+  }
+};
+/* ---- 추가 도형들: 3D 입체에서 전개도를 자동 계산해 미리 만들어 둔 데이터 ---- */
+Object.assign(SHAPES, {"cuboid":{"name":"직육면체","faces":[{"id":"fr","parent":null,"fold":0,"verts":[[0,0],[2,0],[2,1],[0,1]]},{"id":"tp","parent":"fr","fold":1.5708,"verts":[[0,1],[2,1],[2,2],[0,2]],"hinge":[[0,1],[2,1]]},{"id":"bt","parent":"fr","fold":1.5708,"verts":[[0,-1],[2,-1],[2,0],[0,0]],"hinge":[[0,0],[2,0]]},{"id":"rt","parent":"fr","fold":1.5708,"verts":[[2,0],[3,0],[3,1],[2,1]],"hinge":[[2,0],[2,1]]},{"id":"lf","parent":"fr","fold":1.5708,"verts":[[-1,0],[0,0],[0,1],[-1,1]],"hinge":[[0,0],[0,1]]},{"id":"bk","parent":"tp","fold":1.5708,"verts":[[0,2],[2,2],[2,3],[0,3]],"hinge":[[0,2],[2,2]]}]},"pyr5":{"name":"오각뿔","faces":[{"id":"base","parent":null,"fold":0,"verts":[[0.5,-0.68819],[0.80902,0.26287],[0,0.85065],[-0.80902,0.26287],[-0.5,-0.68819]]},{"id":"t0","parent":"base","fold":2.48923,"verts":[[0.5,-0.68819],[0.80902,0.26287],[1.47815,-0.48028]],"hinge":[[0.5,-0.68819],[0.80902,0.26287]]},{"id":"t1","parent":"base","fold":2.48923,"verts":[[0.80902,0.26287],[0,0.85065],[0.91355,1.25739]],"hinge":[[0.80902,0.26287],[0,0.85065]]},{"id":"t2","parent":"base","fold":2.48923,"verts":[[0,0.85065],[-0.80902,0.26287],[-0.91355,1.25739]],"hinge":[[0,0.85065],[-0.80902,0.26287]]},{"id":"t3","parent":"base","fold":2.48923,"verts":[[-0.80902,0.26287],[-0.5,-0.68819],[-1.47815,-0.48028]],"hinge":[[-0.80902,0.26287],[-0.5,-0.68819]]},{"id":"t4","parent":"base","fold":2.48923,"verts":[[-0.5,-0.68819],[0.5,-0.68819],[0,-1.55422]],"hinge":[[-0.5,-0.68819],[0.5,-0.68819]]}]},"prism5":{"name":"오각기둥","faces":[{"id":"q0","parent":null,"fold":0,"verts":[[0,0],[1,0],[1,1],[0,1]]},{"id":"q1","parent":"q0","fold":1.25664,"verts":[[0,1],[1,1],[1,2],[0,2]],"hinge":[[0,1],[1,1]]},{"id":"q2","parent":"q1","fold":1.25664,"verts":[[0,2],[1,2],[1,3],[0,3]],"hinge":[[0,2],[1,2]]},{"id":"q3","parent":"q2","fold":1.25664,"verts":[[0,3],[1,3],[1,4],[0,4]],"hinge":[[0,3],[1,3]]},{"id":"q4","parent":"q3","fold":1.25664,"verts":[[0,4],[1,4],[1,5],[0,5]],"hinge":[[0,4],[1,4]]},{"id":"capL","parent":"q2","fold":1.5708,"verts":[[0,3],[0,2],[-0.95106,1.69098],[-1.53884,2.5],[-0.95106,3.30902]],"hinge":[[0,3],[0,2]]},{"id":"capR","parent":"q2","fold":1.5708,"verts":[[1,2],[1,3],[0.04894,3.30902],[-0.53884,2.5],[0.04894,1.69098]],"hinge":[[1,2],[1,3]]}]},"prism6":{"name":"육각기둥","faces":[{"id":"q0","parent":null,"fold":0,"verts":[[0,0],[1,0],[1,1],[0,1]]},{"id":"q1","parent":"q0","fold":1.0472,"verts":[[0,1],[1,1],[1,2],[0,2]],"hinge":[[0,1],[1,1]]},{"id":"q2","parent":"q1","fold":1.0472,"verts":[[0,2],[1,2],[1,3],[0,3]],"hinge":[[0,2],[1,2]]},{"id":"q3","parent":"q2","fold":1.0472,"verts":[[0,3],[1,3],[1,4],[0,4]],"hinge":[[0,3],[1,3]]},{"id":"q4","parent":"q3","fold":1.0472,"verts":[[0,4],[1,4],[1,5],[0,5]],"hinge":[[0,4],[1,4]]},{"id":"q5","parent":"q4","fold":1.0472,"verts":[[0,5],[1,5],[1,6],[0,6]],"hinge":[[0,5],[1,5]]},{"id":"capL","parent":"q3","fold":1.5708,"verts":[[0,4],[0,3],[-0.86603,2.5],[-1.73205,3],[-1.73205,4],[-0.86603,4.5]],"hinge":[[0,4],[0,3]]},{"id":"capR","parent":"q3","fold":1.5708,"verts":[[1,3],[1,4],[0.13397,4.5],[-0.73205,4],[-0.73205,3],[0.13397,2.5]],"hinge":[[1,3],[1,4]]}]},"dodeca":{"name":"정십이면체","faces":[{"id":"f7","parent":null,"fold":0,"verts":[[0,0],[1.23607,0],[1.61803,1.17557],[0.61803,1.90211],[-0.38197,1.17557]]},{"id":"f3","parent":"f7","verts":[[2.61803,1.90211],[2.23607,3.07768],[1,3.07768],[0.61803,1.90211],[1.61803,1.17557]],"hinge":[[0.61803,1.90211],[1.61803,1.17557]],"fold":1.10715},{"id":"f10","parent":"f7","verts":[[0,0],[-0.38197,1.17557],[-1.61803,1.17557],[-2,0],[-1,-0.72654]],"hinge":[[0,0],[-0.38197,1.17557]],"fold":1.10715},{"id":"f11","parent":"f7","verts":[[0,0],[-0.38197,-1.17557],[0.61803,-1.90211],[1.61803,-1.17557],[1.23607,0]],"hinge":[[0,0],[1.23607,0]],"fold":1.10715},{"id":"f5","parent":"f7","verts":[[1.23607,0],[2.23607,-0.72654],[3.23607,0],[2.8541,1.17557],[1.61803,1.17557]],"hinge":[[1.23607,0],[1.61803,1.17557]],"fold":1.10715},{"id":"f4","parent":"f7","verts":[[-0.38197,1.17557],[0.61803,1.90211],[0.23607,3.07768],[-1,3.07768],[-1.38197,1.90211]],"hinge":[[-0.38197,1.17557],[0.61803,1.90211]],"fold":1.10715},{"id":"f1","parent":"f3","verts":[[3.8541,1.90211],[4.23607,3.07768],[3.23607,3.80423],[2.23607,3.07768],[2.61803,1.90211]],"hinge":[[2.23607,3.07768],[2.61803,1.90211]],"fold":1.10715},{"id":"f0","parent":"f3","verts":[[1,3.07768],[2.23607,3.07768],[2.61803,4.25325],[1.61803,4.9798],[0.61803,4.25325]],"hinge":[[1,3.07768],[2.23607,3.07768]],"fold":1.10715},{"id":"f9","parent":"f10","verts":[[-1,-0.72654],[-2,0],[-3,-0.72654],[-2.61803,-1.90211],[-1.38197,-1.90211]],"hinge":[[-1,-0.72654],[-2,0]],"fold":1.10715},{"id":"f8","parent":"f10","verts":[[-2.61803,1.90211],[-3.61803,1.17557],[-3.23607,0],[-2,0],[-1.61803,1.17557]],"hinge":[[-2,0],[-1.61803,1.17557]],"fold":1.10715},{"id":"f6","parent":"f11","verts":[[1,-3.07768],[2.23607,-3.07768],[2.61803,-1.90211],[1.61803,-1.17557],[0.61803,-1.90211]],"hinge":[[1.61803,-1.17557],[0.61803,-1.90211]],"fold":1.10715},{"id":"f2","parent":"f1","verts":[[4.8541,4.9798],[3.61803,4.9798],[3.23607,3.80423],[4.23607,3.07768],[5.23607,3.80423]],"hinge":[[3.23607,3.80423],[4.23607,3.07768]],"fold":1.10715}]},"icosa":{"name":"정이십면체","faces":[{"id":"f13","parent":null,"fold":0,"verts":[[0,0],[2,0],[1,1.73205]]},{"id":"f17","parent":"f13","verts":[[1,1.73205],[-1,1.73205],[0,0]],"hinge":[[1,1.73205],[0,0]],"fold":0.72973},{"id":"f15","parent":"f13","verts":[[1,-1.73205],[2,0],[0,0]],"hinge":[[2,0],[0,0]],"fold":0.72973},{"id":"f8","parent":"f13","verts":[[2,0],[3,1.73205],[1,1.73205]],"hinge":[[2,0],[1,1.73205]],"fold":0.72973},{"id":"f5","parent":"f17","verts":[[-1,1.73205],[-2,0],[0,0]],"hinge":[[-1,1.73205],[0,0]],"fold":0.72973},{"id":"f16","parent":"f17","verts":[[0,3.4641],[-1,1.73205],[1,1.73205]],"hinge":[[-1,1.73205],[1,1.73205]],"fold":0.72973},{"id":"f7","parent":"f15","verts":[[0,0],[-1,-1.73205],[1,-1.73205]],"hinge":[[0,0],[1,-1.73205]],"fold":0.72973},{"id":"f14","parent":"f15","verts":[[3,-1.73205],[2,0],[1,-1.73205]],"hinge":[[2,0],[1,-1.73205]],"fold":0.72973},{"id":"f9","parent":"f8","verts":[[4,0],[3,1.73205],[2,0]],"hinge":[[3,1.73205],[2,0]],"fold":0.72973},{"id":"f10","parent":"f8","verts":[[1,1.73205],[3,1.73205],[2,3.4641]],"hinge":[[1,1.73205],[3,1.73205]],"fold":0.72973},{"id":"f0","parent":"f5","verts":[[-1,1.73205],[-3,1.73205],[-2,0]],"hinge":[[-1,1.73205],[-2,0]],"fold":0.72973},{"id":"f2","parent":"f16","verts":[[0,3.4641],[-2,3.4641],[-1,1.73205]],"hinge":[[0,3.4641],[-1,1.73205]],"fold":0.72973},{"id":"f6","parent":"f7","verts":[[1,-1.73205],[-1,-1.73205],[0,-3.4641]],"hinge":[[1,-1.73205],[-1,-1.73205]],"fold":0.72973},{"id":"f19","parent":"f14","verts":[[1,-1.73205],[2,-3.4641],[3,-1.73205]],"hinge":[[1,-1.73205],[3,-1.73205]],"fold":0.72973},{"id":"f11","parent":"f9","verts":[[5,1.73205],[3,1.73205],[4,0]],"hinge":[[3,1.73205],[4,0]],"fold":0.72973},{"id":"f12","parent":"f10","verts":[[2,3.4641],[3,1.73205],[4,3.4641]],"hinge":[[2,3.4641],[3,1.73205]],"fold":0.72973},{"id":"f1","parent":"f0","verts":[[-2,0],[-3,1.73205],[-4,0]],"hinge":[[-2,0],[-3,1.73205]],"fold":0.72973},{"id":"f4","parent":"f2","verts":[[-1,5.19615],[-2,3.4641],[0,3.4641]],"hinge":[[-2,3.4641],[0,3.4641]],"fold":0.72973},{"id":"f18","parent":"f19","verts":[[3,-1.73205],[2,-3.4641],[4,-3.4641]],"hinge":[[3,-1.73205],[2,-3.4641]],"fold":0.72973},{"id":"f3","parent":"f1","verts":[[-4,0],[-3,1.73205],[-5,1.73205]],"hinge":[[-4,0],[-3,1.73205]],"fold":0.72973}]},"cubocta":{"name":"준정다면체","faces":[{"id":"f9","parent":null,"fold":0,"verts":[[0,0],[1.41421,0],[0.70711,1.22474]]},{"id":"f13","parent":"f9","verts":[[-0.51764,1.93185],[-1.22474,0.70711],[0,0],[0.70711,1.22474]],"hinge":[[0,0],[0.70711,1.22474]],"fold":0.95532},{"id":"f7","parent":"f9","verts":[[0.70711,1.22474],[1.41421,0],[2.63896,0.70711],[1.93185,1.93185]],"hinge":[[0.70711,1.22474],[1.41421,0]],"fold":0.95532},{"id":"f1","parent":"f9","verts":[[0,0],[0,-1.41421],[1.41421,-1.41421],[1.41421,0]],"hinge":[[0,0],[1.41421,0]],"fold":0.95532},{"id":"f3","parent":"f13","verts":[[-1.22474,0.70711],[-1.22474,-0.70711],[0,0]],"hinge":[[-1.22474,0.70711],[0,0]],"fold":0.95532},{"id":"f6","parent":"f13","verts":[[-0.51764,1.93185],[-1.93185,1.93185],[-1.22474,0.70711]],"hinge":[[-0.51764,1.93185],[-1.22474,0.70711]],"fold":0.95532},{"id":"f11","parent":"f13","verts":[[0.70711,1.22474],[0.70711,2.63896],[-0.51764,1.93185]],"hinge":[[0.70711,1.22474],[-0.51764,1.93185]],"fold":0.95532},{"id":"f8","parent":"f7","verts":[[2.63896,0.70711],[1.41421,0],[2.63896,-0.70711]],"hinge":[[2.63896,0.70711],[1.41421,0]],"fold":0.95532},{"id":"f10","parent":"f7","verts":[[3.34607,1.93185],[1.93185,1.93185],[2.63896,0.70711]],"hinge":[[1.93185,1.93185],[2.63896,0.70711]],"fold":0.95532},{"id":"f2","parent":"f1","verts":[[1.41421,-1.41421],[0,-1.41421],[0.70711,-2.63896]],"hinge":[[1.41421,-1.41421],[0,-1.41421]],"fold":0.95532},{"id":"f0","parent":"f3","verts":[[-2.63896,-0.70711],[-1.22474,-0.70711],[-1.22474,0.70711],[-2.63896,0.70711]],"hinge":[[-1.22474,-0.70711],[-1.22474,0.70711]],"fold":0.95532},{"id":"f4","parent":"f6","verts":[[-1.93185,3.34607],[-1.93185,1.93185],[-0.51764,1.93185],[-0.51764,3.34607]],"hinge":[[-1.93185,1.93185],[-0.51764,1.93185]],"fold":0.95532},{"id":"f12","parent":"f8","verts":[[2.63896,-0.70711],[4.05317,-0.70711],[4.05317,0.70711],[2.63896,0.70711]],"hinge":[[2.63896,-0.70711],[2.63896,0.70711]],"fold":0.95532},{"id":"f5","parent":"f0","verts":[[-2.63896,-0.70711],[-2.63896,0.70711],[-3.8637,0]],"hinge":[[-2.63896,-0.70711],[-2.63896,0.70711]],"fold":0.95532}]}});
+
+// --- 추가 모양들(다면체 외 다양한 형태) ---
+Object.assign(SHAPES, {"diamond":{"name":"다이아몬드","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[0.38268,0],[0.65328,0.2706],[0.65328,0.65328],[0.38268,0.92388],[0,0.92388],[-0.2706,0.65328],[-0.2706,0.2706]]},{"id":"f7","parent":"f0","verts":[[0.57403,-0.61105],[0.38268,0],[0,0],[-0.19134,-0.61106]],"hinge":[[0.38268,0],[0,0]],"fold":0.71366},{"id":"f8","parent":"f0","verts":[[1.22066,-0.02618],[0.65328,0.2706],[0.38268,0],[0.67947,-0.56738]],"hinge":[[0.65328,0.2706],[0.38268,0]],"fold":0.71366},{"id":"f2","parent":"f0","verts":[[1.26434,0.84462],[0.65328,0.65328],[0.65328,0.2706],[1.26434,0.07926]],"hinge":[[0.65328,0.65328],[0.65328,0.2706]],"fold":0.71366},{"id":"f1","parent":"f0","verts":[[0.67946,1.49126],[0.38268,0.92388],[0.65328,0.65328],[1.22066,0.95006]],"hinge":[[0.38268,0.92388],[0.65328,0.65328]],"fold":0.71366},{"id":"f3","parent":"f0","verts":[[-0.19134,1.53493],[0,0.92388],[0.38268,0.92388],[0.57402,1.53493]],"hinge":[[0,0.92388],[0.38268,0.92388]],"fold":0.71366},{"id":"f4","parent":"f0","verts":[[-0.83798,0.95006],[-0.2706,0.65328],[0,0.92388],[-0.29678,1.49126]],"hinge":[[-0.2706,0.65328],[0,0.92388]],"fold":0.71366},{"id":"f5","parent":"f0","verts":[[-0.88165,0.07925],[-0.2706,0.2706],[-0.2706,0.65328],[-0.88165,0.84462]],"hinge":[[-0.2706,0.2706],[-0.2706,0.65328]],"fold":0.71366},{"id":"f6","parent":"f0","verts":[[-0.29678,-0.56738],[0,0],[-0.2706,0.2706],[-0.83798,-0.02619]],"hinge":[[0,0],[-0.2706,0.2706]],"fold":0.71366},{"id":"f15","parent":"f7","verts":[[0.57403,-0.61105],[-0.19134,-0.61106],[0.19134,-2.20591]],"hinge":[[0.57403,-0.61105],[-0.19134,-0.61106]],"fold":1.47499},{"id":"f16","parent":"f8","verts":[[1.22066,-0.02618],[0.67947,-0.56738],[2.0778,-1.42451]],"hinge":[[1.22066,-0.02618],[0.67947,-0.56738]],"fold":1.47499},{"id":"f10","parent":"f2","verts":[[2.85919,0.46194],[1.26434,0.84462],[1.26434,0.07926]],"hinge":[[1.26434,0.84462],[1.26434,0.07926]],"fold":1.47499},{"id":"f9","parent":"f1","verts":[[0.67946,1.49126],[1.22066,0.95006],[2.07779,2.34839]],"hinge":[[0.67946,1.49126],[1.22066,0.95006]],"fold":1.47499},{"id":"f11","parent":"f3","verts":[[-0.19134,1.53493],[0.57402,1.53493],[0.19134,3.12979]],"hinge":[[-0.19134,1.53493],[0.57402,1.53493]],"fold":1.47499},{"id":"f12","parent":"f4","verts":[[-0.83798,0.95006],[-0.29678,1.49126],[-1.69511,2.34839]],"hinge":[[-0.83798,0.95006],[-0.29678,1.49126]],"fold":1.47499},{"id":"f13","parent":"f5","verts":[[-0.88165,0.07925],[-0.88165,0.84462],[-2.47651,0.46194]],"hinge":[[-0.88165,0.07925],[-0.88165,0.84462]],"fold":1.47499},{"id":"f14","parent":"f6","verts":[[-0.29678,-0.56738],[-0.83798,-0.02619],[-1.69511,-1.42452]],"hinge":[[-0.29678,-0.56738],[-0.83798,-0.02619]],"fold":1.47499}]},"house":{"name":"집","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[1.3,0],[1.3,2],[0,2],[-1,1]]},{"id":"f3","parent":"f0","verts":[[0,-2],[1.3,-2],[1.3,0],[0,0]],"hinge":[[1.3,0],[0,0]],"fold":1.5708},{"id":"f1","parent":"f0","verts":[[3.3,2],[1.3,2],[1.3,0],[3.3,0]],"hinge":[[1.3,2],[1.3,0]],"fold":1.5708},{"id":"f2","parent":"f0","verts":[[0,2],[1.3,2],[1.3,4],[0,4]],"hinge":[[0,2],[1.3,2]],"fold":1.5708},{"id":"f5","parent":"f0","verts":[[-2.41421,2.41421],[-1,1],[0,2],[-1.41421,3.41421]],"hinge":[[-1,1],[0,2]],"fold":1.5708},{"id":"f4","parent":"f0","verts":[[-1.41421,-1.41421],[0,0],[-1,1],[-2.41421,-0.41421]],"hinge":[[0,0],[-1,1]],"fold":1.5708},{"id":"f6","parent":"f3","verts":[[-1,-3],[0,-4],[1.3,-4],[1.3,-2],[0,-2]],"hinge":[[1.3,-2],[0,-2]],"fold":1.5708}]},"pencil":{"name":"연필","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[0.6,0],[0.9,0.51962],[0.6,1.03923],[0,1.03923],[-0.3,0.51962]]},{"id":"f3","parent":"f0","verts":[[0.6,-2],[0.6,0],[0,0],[0,-2]],"hinge":[[0.6,0],[0,0]],"fold":1.5708},{"id":"f1","parent":"f0","verts":[[2.63205,-0.48039],[0.9,0.51962],[0.6,0],[2.33205,-1]],"hinge":[[0.9,0.51962],[0.6,0]],"fold":1.5708},{"id":"f2","parent":"f0","verts":[[0.6,1.03923],[0.9,0.51962],[2.63205,1.51962],[2.33205,2.03923]],"hinge":[[0.6,1.03923],[0.9,0.51962]],"fold":1.5708},{"id":"f6","parent":"f0","verts":[[0,3.03923],[0,1.03923],[0.6,1.03923],[0.6,3.03923]],"hinge":[[0,1.03923],[0.6,1.03923]],"fold":1.5708},{"id":"f5","parent":"f0","verts":[[-2.03205,1.51962],[-0.3,0.51962],[0,1.03923],[-1.73205,2.03923]],"hinge":[[-0.3,0.51962],[0,1.03923]],"fold":1.5708},{"id":"f4","parent":"f0","verts":[[-1.73205,-1],[0,0],[-0.3,0.51962],[-2.03205,-0.48039]],"hinge":[[0,0],[-0.3,0.51962]],"fold":1.5708},{"id":"f9","parent":"f3","verts":[[0.3,-3.49332],[0.6,-2],[0,-2]],"hinge":[[0.6,-2],[0,-2]],"fold":0.35539},{"id":"f7","parent":"f1","verts":[[3.7753,-1.48685],[2.63205,-0.48039],[2.33205,-1]],"hinge":[[2.63205,-0.48039],[2.33205,-1]],"fold":0.35539},{"id":"f8","parent":"f2","verts":[[2.33205,2.03923],[2.63205,1.51962],[3.7753,2.52608]],"hinge":[[2.33205,2.03923],[2.63205,1.51962]],"fold":0.35539},{"id":"f12","parent":"f6","verts":[[0.3,4.53255],[0,3.03923],[0.6,3.03923]],"hinge":[[0,3.03923],[0.6,3.03923]],"fold":0.35539},{"id":"f11","parent":"f5","verts":[[-3.1753,2.52608],[-2.03205,1.51962],[-1.73205,2.03923]],"hinge":[[-2.03205,1.51962],[-1.73205,2.03923]],"fold":0.35539},{"id":"f10","parent":"f4","verts":[[-3.1753,-1.48685],[-1.73205,-1],[-2.03205,-0.48039]],"hinge":[[-1.73205,-1],[-2.03205,-0.48039]],"fold":0.35539}]},"antiprism":{"name":"엇각기둥","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[1.41421,0],[1.41421,1.41421],[0,1.41421]]},{"id":"f2","parent":"f0","verts":[[0.70711,-1.23523],[1.41421,0],[0,0]],"hinge":[[1.41421,0],[0,0]],"fold":1.3314},{"id":"f1","parent":"f0","verts":[[1.41421,1.41421],[1.41421,0],[2.64944,0.70711]],"hinge":[[1.41421,1.41421],[1.41421,0]],"fold":1.3314},{"id":"f4","parent":"f0","verts":[[0,1.41421],[1.41421,1.41421],[0.70711,2.64944]],"hinge":[[0,1.41421],[1.41421,1.41421]],"fold":1.3314},{"id":"f6","parent":"f0","verts":[[0,0],[0,1.41421],[-1.23523,0.70711]],"hinge":[[0,0],[0,1.41421]],"fold":1.3314},{"id":"f3","parent":"f2","verts":[[2.12132,-1.23523],[1.41421,0],[0.70711,-1.23523]],"hinge":[[1.41421,0],[0.70711,-1.23523]],"fold":0.91331},{"id":"f8","parent":"f2","verts":[[0.70711,-1.23523],[0,0],[-0.70711,-1.23523]],"hinge":[[0.70711,-1.23523],[0,0]],"fold":0.91331},{"id":"f5","parent":"f1","verts":[[2.64944,2.12132],[1.41421,1.41421],[2.64944,0.70711]],"hinge":[[1.41421,1.41421],[2.64944,0.70711]],"fold":0.91331},{"id":"f7","parent":"f4","verts":[[-0.70711,2.64944],[0,1.41421],[0.70711,2.64944]],"hinge":[[0,1.41421],[0.70711,2.64944]],"fold":0.91331},{"id":"f9","parent":"f3","verts":[[2.12132,-1.23523],[0.70711,-1.23523],[0.70711,-2.64944],[2.12132,-2.64944]],"hinge":[[2.12132,-1.23523],[0.70711,-1.23523]],"fold":1.3314}]},"frustum":{"name":"사다리꼴기둥","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[0.77782,0],[0.77782,0.77782],[0,0.77782]]},{"id":"f2","parent":"f0","verts":[[1.16673,-1.84153],[0.77782,0],[0,0],[-0.38891,-1.84153]],"hinge":[[0.77782,0],[0,0]],"fold":1.35801},{"id":"f1","parent":"f0","verts":[[2.61935,1.16673],[0.77782,0.77782],[0.77782,0],[2.61935,-0.38891]],"hinge":[[0.77782,0.77782],[0.77782,0]],"fold":1.35801},{"id":"f3","parent":"f0","verts":[[-0.38891,2.61935],[0,0.77782],[0.77782,0.77782],[1.16673,2.61935]],"hinge":[[0,0.77782],[0.77782,0.77782]],"fold":1.35801},{"id":"f4","parent":"f0","verts":[[-1.84153,-0.38891],[0,0],[0,0.77782],[-1.84153,1.16673]],"hinge":[[0,0],[0,0.77782]],"fold":1.35801},{"id":"f5","parent":"f2","verts":[[1.16673,-3.39717],[1.16673,-1.84153],[-0.38891,-1.84153],[-0.38891,-3.39717]],"hinge":[[1.16673,-1.84153],[-0.38891,-1.84153]],"fold":1.78359}]},"trunctetra":{"name":"깎은정사면체","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[2.82843,0],[1.41421,2.44949]]},{"id":"f1","parent":"f0","verts":[[2.82843,-4.89898],[4.24264,-2.44949],[2.82843,0],[0,0],[-1.41421,-2.44949],[0,-4.89898]],"hinge":[[2.82843,0],[0,0]],"fold":1.23096},{"id":"f2","parent":"f0","verts":[[2.82843,4.89898],[1.41421,2.44949],[2.82843,0],[5.65685,0],[7.07107,2.44949],[5.65685,4.89898]],"hinge":[[1.41421,2.44949],[2.82843,0]],"fold":1.23096},{"id":"f3","parent":"f0","verts":[[-4.24264,2.44949],[-2.82843,0],[0,0],[1.41421,2.44949],[0,4.89898],[-2.82843,4.89898]],"hinge":[[0,0],[1.41421,2.44949]],"fold":1.23096},{"id":"f7","parent":"f1","verts":[[5.65685,-4.89898],[4.24264,-2.44949],[2.82843,-4.89898]],"hinge":[[4.24264,-2.44949],[2.82843,-4.89898]],"fold":1.23096},{"id":"f6","parent":"f1","verts":[[-1.41421,-2.44949],[-2.82843,-4.89898],[0,-4.89898]],"hinge":[[-1.41421,-2.44949],[0,-4.89898]],"fold":1.23096},{"id":"f5","parent":"f1","verts":[[0,-4.89898],[-1.41421,-7.34847],[0,-9.79796],[2.82843,-9.79796],[4.24264,-7.34847],[2.82843,-4.89898]],"hinge":[[0,-4.89898],[2.82843,-4.89898]],"fold":1.91063},{"id":"f4","parent":"f2","verts":[[5.65685,4.89898],[4.24264,7.34847],[2.82843,4.89898]],"hinge":[[5.65685,4.89898],[2.82843,4.89898]],"fold":1.23096}]},"bipyramid":{"name":"오각쌍뿔","faces":[{"id":"f0","parent":null,"fold":0,"verts":[[0,0],[1.48661,0],[1.0218,1.07978]]},{"id":"f2","parent":"f0","verts":[[1.0218,-1.07978],[1.48661,0],[0,0]],"hinge":[[1.48661,0],[0,0]],"fold":0.98654},{"id":"f1","parent":"f0","verts":[[1.0218,1.07978],[1.48661,0],[2.50841,1.07978]],"hinge":[[1.0218,1.07978],[1.48661,0]],"fold":1.26827},{"id":"f4","parent":"f0","verts":[[0,0],[1.0218,1.07978],[-0.08196,1.48435]],"hinge":[[0,0],[1.0218,1.07978]],"fold":0.98654},{"id":"f3","parent":"f2","verts":[[2.50841,-1.07978],[1.48661,0],[1.0218,-1.07978]],"hinge":[[1.48661,0],[1.0218,-1.07978]],"fold":1.26827},{"id":"f8","parent":"f2","verts":[[0,0],[-0.08196,-1.48435],[1.0218,-1.07978]],"hinge":[[0,0],[1.0218,-1.07978]],"fold":0.98654},{"id":"f5","parent":"f1","verts":[[1.48661,2.15956],[1.0218,1.07978],[2.50841,1.07978]],"hinge":[[1.0218,1.07978],[2.50841,1.07978]],"fold":0.98654},{"id":"f6","parent":"f4","verts":[[0,0],[-0.08196,1.48435],[-1.13447,0.96072]],"hinge":[[0,0],[-0.08196,1.48435]],"fold":0.98654},{"id":"f9","parent":"f3","verts":[[1.0218,-1.07978],[1.48661,-2.15956],[2.50841,-1.07978]],"hinge":[[1.0218,-1.07978],[2.50841,-1.07978]],"fold":0.98654},{"id":"f7","parent":"f5","verts":[[2.59037,2.56412],[1.48661,2.15956],[2.50841,1.07978]],"hinge":[[1.48661,2.15956],[2.50841,1.07978]],"fold":0.98654}]}});
+
+const PALETTE = ['#ff5a6b','#3a8dff','#27c46b','#ffcb2e','#9b5de5','#ff8c42','#ff6fb5','#22d3c5'];
+const SHAPE_KEYS = Object.keys(SHAPES);
+
+/* 난이도별 도형 묶음 */
+const POOLS = {
+  easy: ['cube','tetra','pyramid','prism','octa'],
+  mid:  ['cube','tetra','pyramid','prism','octa','cuboid','pyr5','prism5','prism6','house','pencil','frustum'],
+  hard: ['cube','tetra','pyramid','prism','octa','cuboid','pyr5','prism5','prism6','dodeca','icosa','cubocta','house','pencil','frustum','antiprism','trunctetra','bipyramid','diamond'],
+};
+let DIFF = 'easy';
+
+// 보기 버튼용 간단 아이콘(SVG)
+const ICONS = {
+  cube:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><rect x="14" y="24" width="26" height="26" rx="2" fill="currentColor" fill-opacity=".14"/><path d="M14 24 L26 12 L52 12 L40 24"/><path d="M40 24 L52 12 L52 38 L40 50"/></svg>`,
+  tetra:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M32 8 L54 50 L10 50 Z" fill="currentColor" fill-opacity=".14"/><path d="M32 8 L38 40 M10 50 L38 40 M54 50 L38 40"/></svg>`,
+  pyramid:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M32 8 L10 42 L32 54 L54 42 Z" fill="currentColor" fill-opacity=".14"/><path d="M32 8 L32 30 M10 42 L32 30 L54 42"/></svg>`,
+  prism:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M18 46 L34 16 L34 40 L50 50 L18 46 Z" fill="currentColor" fill-opacity=".12"/><path d="M8 50 L24 20 L40 50 Z" fill="currentColor" fill-opacity=".14"/><path d="M24 20 L40 16 L56 46 L40 50 M8 50 L24 46"/></svg>`,
+  octa:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M32 6 L10 32 L32 58 L54 32 Z" fill="currentColor" fill-opacity=".14"/><path d="M10 32 L54 32 M32 6 L32 58" stroke-opacity=".55"/></svg>`
+};
+
+
+Object.assign(ICONS, {
+  cuboid:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><rect x="10" y="26" width="34" height="22" rx="2" fill="currentColor" fill-opacity=".14"/><path d="M10 26 L20 14 L54 14 L44 26"/><path d="M44 26 L54 14 L54 36 L44 48"/></svg>`,
+  pyr5:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M18 32 L12 46 L32 53 L52 46 L46 32 Z" fill="currentColor" fill-opacity=".14"/><path d="M32 7 L18 32 M32 7 L46 32 M32 7 L12 46 M32 7 L52 46 M18 32 L46 32"/></svg>`,
+  prism5:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M16 22 L26 14 L36 22 L32 38 L20 38 Z" fill="currentColor" fill-opacity=".14"/><path d="M26 14 L40 18 L50 26 L46 42 L32 38 M16 22 L30 26 L40 18 M20 38 L34 42 L32 38 M50 26 L46 42 L34 42 L30 26 L40 18"/></svg>`,
+  prism6:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><path d="M14 24 L22 16 L34 16 L42 24 L34 32 L22 32 Z" fill="currentColor" fill-opacity=".14"/><path d="M22 16 L34 20 M34 16 L46 20 L54 28 L46 36 L34 36 L34 32 M42 24 L54 28 M34 32 L46 36"/></svg>`,
+  dodeca:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M32 6 L54 22 L46 50 L18 50 L10 22 Z" fill="currentColor" fill-opacity=".14"/><path d="M32 21 L43 29 L39 43 L25 43 L21 29 Z" stroke-opacity=".7"/><path d="M32 6 L32 21 M54 22 L43 29 M46 50 L39 43 M18 50 L25 43 M10 22 L21 29" stroke-opacity=".55"/></svg>`,
+  icosa:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M32 6 L54 19 L54 45 L32 58 L10 45 L10 19 Z" fill="currentColor" fill-opacity=".14"/><path d="M32 6 L32 58 M10 19 L54 45 M54 19 L10 45 M10 19 L54 19 M10 45 L54 45 M32 6 L10 45 M32 6 L54 45 M32 58 L10 19 M32 58 L54 19" stroke-opacity=".4"/></svg>`,
+  cubocta:`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><path d="M22 8 L42 8 L56 22 L56 42 L42 56 L22 56 L8 42 L8 22 Z" fill="currentColor" fill-opacity=".12"/><rect x="24" y="24" width="16" height="16" fill="currentColor" fill-opacity=".2"/><path d="M22 8 L24 24 M42 8 L40 24 M56 22 L40 24 M56 42 L40 40 M42 56 L40 40 M22 56 L24 40 M8 42 L24 40 M8 22 L24 24" stroke-opacity=".45"/></svg>`,
+});
+
+Object.assign(ICONS, {"diamond": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linejoin=\"round\"><path d=\"M16 24 L24 14 L40 14 L48 24 L32 54 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M16 24 L48 24 M24 14 L28 24 L32 54 M40 14 L36 24\" stroke-opacity=\".6\"/></svg>", "house": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linejoin=\"round\"><path d=\"M14 28 L32 12 L50 28 L50 52 L14 52 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M14 28 L32 12 L50 28\" stroke-opacity=\".75\"/></svg>", "pencil": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linejoin=\"round\"><path d=\"M24 10 L40 10 L40 44 L32 56 L24 44 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M24 44 L40 44 M24 14 L40 14\" stroke-opacity=\".6\"/></svg>", "antiprism": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linejoin=\"round\"><path d=\"M16 18 L48 18 L40 46 L24 46 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M16 18 L24 46 M48 18 L40 46 M16 18 L40 46 M48 18 L24 46\" stroke-opacity=\".5\"/></svg>", "frustum": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linejoin=\"round\"><path d=\"M22 16 L42 16 L52 50 L12 50 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M22 16 L42 16\" stroke-opacity=\".7\"/></svg>", "trunctetra": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linejoin=\"round\"><path d=\"M26 10 L38 10 L54 44 L46 52 L18 52 L10 44 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M26 10 L32 30 L38 10 M10 44 L32 30 M54 44 L32 30 M18 52 L46 52\" stroke-opacity=\".5\"/></svg>", "bipyramid": "<svg viewBox=\"0 0 64 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linejoin=\"round\"><path d=\"M32 6 L52 30 L32 58 L12 30 Z\" fill=\"currentColor\" fill-opacity=\".14\"/><path d=\"M12 30 L52 30 M32 6 L26 30 L32 58 M32 6 L38 30 L32 58\" stroke-opacity=\".5\"/></svg>"});
+
+/* ---------------- Three.js 기본 셋업 ---------------- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(0, 0, 9);
+const modelGroup = new THREE.Group();           // 사용자가 회전시키는 그룹
+modelGroup.rotation.set(-0.55, 0.45, 0);
+scene.add(modelGroup);
+
+let rootGroup = null;     // 현재 전개도의 루트 hinge 그룹
+let hinges = [];          // 접을 hinge 그룹들 {group, axis, angle}
+let foldT = 1;            // 0=완전히 펴짐, 1=완전히 접힘 (문제 단계엔 0)
+
+function clearModel(){
+  if(rootGroup){
+    modelGroup.remove(rootGroup);
+    rootGroup.traverse(o=>{
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose()); }
+    });
+    rootGroup=null;
+  }
+  hinges=[];
+}
+
+// 다각형(2D verts) → 채움 + 테두리(맥포머스 느낌) 메쉬 그룹
+function makeFaceMeshes(face){
+  const g = new THREE.Group();
+  const v = face.verts.map(p=>({x:p[0], y:p[1]}));
+  const n = v.length;
+  const col = new THREE.Color(face.color);
+  // centroid
+  let cx=0, cy=0; v.forEach(p=>{cx+=p.x; cy+=p.y;}); cx/=n; cy/=n;
+  const w = 0.07;                       // 테두리 두께(절대값)
+  // 다각형 진행 방향(시계/반시계)
+  let area2=0; for(let i=0;i<n;i++){ const a=v[i], b=v[(i+1)%n]; area2+=a.x*b.y-b.x*a.y; }
+  const o = area2>=0 ? 1 : -1;
+  // 각 변의 안쪽 단위 법선
+  const en=[];
+  for(let i=0;i<n;i++){ const a=v[i], b=v[(i+1)%n]; let dx=b.x-a.x, dy=b.y-a.y; const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L; en.push({x:-dy*o, y:dx*o}); }
+  // 변을 안으로 w 만큼 민 교점(miter) = 안쪽 다각형 (사각형/오각형/육각형 등 모두 대응)
+  const inner = v.map((p,i)=>{ const n1=en[(i-1+n)%n], n2=en[i]; const den=Math.max(0.35, 1+n1.x*n2.x+n1.y*n2.y); const k=w/den; return {x:p.x+(n1.x+n2.x)*k, y:p.y+(n1.y+n2.y)*k}; });
+
+  // 채움(반투명) — 살짝 뒤로 빼서 z-fighting 방지
+  const fillPos=[];
+  for(let i=1;i<n-1;i++){
+    fillPos.push(v[0].x,v[0].y,-0.004, v[i].x,v[i].y,-0.004, v[i+1].x,v[i+1].y,-0.004);
+  }
+  const fg = new THREE.BufferGeometry();
+  fg.setAttribute('position', new THREE.Float32BufferAttribute(fillPos,3));
+  const fillMat = new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.22, side:THREE.DoubleSide, depthWrite:false});
+  g.add(new THREE.Mesh(fg, fillMat));
+
+  // 테두리(불투명 프레임)
+  const ringPos=[];
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n, P=v[i], Q=v[j], Pi=inner[i], Qi=inner[j];
+    ringPos.push(P.x,P.y,0, Q.x,Q.y,0, Qi.x,Qi.y,0);
+    ringPos.push(P.x,P.y,0, Qi.x,Qi.y,0, Pi.x,Pi.y,0);
+  }
+  const rg = new THREE.BufferGeometry();
+  rg.setAttribute('position', new THREE.Float32BufferAttribute(ringPos,3));
+  const frameMat = new THREE.MeshBasicMaterial({color:col, side:THREE.DoubleSide});
+  g.add(new THREE.Mesh(rg, frameMat));
+  return g;
+}
+
+// 한 면을 hinge 그룹으로 만들고 자식까지 재귀로 붙임
+function buildNode(face, childrenMap){
+  const hinge = new THREE.Group();
+  const content = new THREE.Group();
+
+  if(face.parent){
+    const A={x:face.hinge[0][0], y:face.hinge[0][1]};
+    const B={x:face.hinge[1][0], y:face.hinge[1][1]};
+    hinge.position.set(A.x, A.y, 0);
+    content.position.set(-A.x, -A.y, 0);
+    const axis = new THREE.Vector3(B.x-A.x, B.y-A.y, 0).normalize();
+    // 접는 방향(+z로 올라가도록) 자동 결정
+    let cx=0,cy=0; face.verts.forEach(p=>{cx+=p[0];cy+=p[1];}); cx/=face.verts.length; cy/=face.verts.length;
+    const d = new THREE.Vector3(cx-A.x, cy-A.y, 0);
+    d.addScaledVector(axis, -d.dot(axis));
+    const cr = new THREE.Vector3().crossVectors(axis, d);
+    const sign = cr.z>=0 ? 1 : -1;
+    hinges.push({group:hinge, axis, angle:sign*face.fold});
+  }
+
+  content.add(makeFaceMeshes(face));
+  (childrenMap[face.id]||[]).forEach(ch=> content.add(buildNode(ch, childrenMap)));
+  hinge.add(content);
+  return hinge;
+}
+
+function loadShape(key){
+  clearModel();
+  // 좌표 재중심화 (전개도가 화면 중앙에 오도록)
+  const faces = SHAPES[key].faces.map(f=>({...f, verts:f.verts.map(p=>p.slice()), hinge:f.hinge?f.hinge.map(p=>p.slice()):null}));
+  faces.forEach((f,i)=>{ if(!f.color) f.color = PALETTE[i % PALETTE.length]; });
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  faces.forEach(f=>f.verts.forEach(p=>{minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1]);}));
+  const ox=(minX+maxX)/2, oy=(minY+maxY)/2;
+  faces.forEach(f=>{ f.verts.forEach(p=>{p[0]-=ox;p[1]-=oy;}); if(f.hinge) f.hinge.forEach(p=>{p[0]-=ox;p[1]-=oy;}); });
+
+  const childrenMap={};
+  faces.forEach(f=>{ if(f.parent){ (childrenMap[f.parent]=childrenMap[f.parent]||[]).push(f); } });
+  const root = faces.find(f=>!f.parent);
+
+  rootGroup = buildNode(root, childrenMap);
+  modelGroup.add(rootGroup);
+
+  // 화면에 맞게 스케일
+  const maxDim = Math.max(maxX-minX, maxY-minY);
+  modelGroup.scale.setScalar(4.6 / maxDim);
+
+  applyFold(0);
+}
+
+function easeInOut(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+
+function applyFold(t){
+  foldT = t;
+  const q = new THREE.Quaternion();
+  hinges.forEach(h=>{ q.setFromAxisAngle(h.axis, h.angle*t); h.group.quaternion.copy(q); });
+}
+
+/* ---------------- 화면 리사이즈 ---------------- */
+function resize(){
+  const r = canvas.getBoundingClientRect();
+  const w = Math.max(1, r.width), h = Math.max(1, r.height);
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+/* ---------------- 마우스/터치로 회전 ---------------- */
+let dragging=false, lx=0, ly=0, userTouched=false;
+canvas.addEventListener('pointerdown', e=>{ dragging=true; userTouched=true; lx=e.clientX; ly=e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+  modelGroup.rotation.y += dx*0.01;
+  modelGroup.rotation.x += dy*0.01;
+  modelGroup.rotation.x = Math.max(-1.45, Math.min(1.45, modelGroup.rotation.x));
+});
+function endDrag(){ dragging=false; }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('wheel', e=>{ e.preventDefault(); camera.position.z = Math.max(5, Math.min(16, camera.position.z + e.deltaY*0.01)); }, {passive:false});
+
+/* ---------------- 애니메이션 루프 ---------------- */
+let foldAnim=null;   // {start, dur, from, to}
+let autoRotate=false;
+function tick(now){
+  if(foldAnim){
+    const p = Math.min(1, (now-foldAnim.start)/foldAnim.dur);
+    applyFold(foldAnim.from + (foldAnim.to-foldAnim.from)*easeInOut(p));
+    if(state==='folding') document.getElementById('foldSlider').value = Math.round(foldT*100);
+    if(p>=1){
+      foldAnim=null;
+      if(state==='folding'){ state='revealed'; autoRotate=true; }
+    }
+  }
+  if(autoRotate && !dragging && state==='revealed'){ modelGroup.rotation.y += 0.006; }
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+
+function startFold(to){
+  foldAnim={start:performance.now(), dur:1500, from:foldT, to};
+}
+
+/* ---------------- 게임 로직 ---------------- */
+let state='guessing';   // guessing | folding | revealed
+let current=null, lastKey=null, round=0, score=0, streak=0;
+let soundOn=true, audioCtx=null;
+
+const el = id=>document.getElementById(id);
+
+function beep(freqs, type='sine'){
+  if(!soundOn) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    let t = audioCtx.currentTime;
+    freqs.forEach((f,i)=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type=type; o.frequency.value=f; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
+      o.start(t); o.stop(t+0.24); t+=0.12;
+    });
+  }catch(e){}
+}
+
+function confetti(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const emo=['🎉','⭐','🟥','🔺','🟦','🟨','🟩','🟣'];
+  for(let i=0;i<18;i++){
+    const s=document.createElement('div');
+    s.className='confetti'; s.textContent=emo[Math.floor(Math.random()*emo.length)];
+    s.style.left=(Math.random()*100)+'vw';
+    s.style.animationDelay=(Math.random()*0.3)+'s';
+    s.style.fontSize=(16+Math.random()*16)+'px';
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(), 1900);
+  }
+}
+
+function pickDistractors(correct, n){
+  const pool = SHAPE_KEYS.filter(k=>k!==correct);
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  return pool.slice(0,n);
+}
+
+function newRound(){
+  round++;
+  const pool = SHAPE_KEYS;
+  let key; do{ key = pool[Math.floor(Math.random()*pool.length)]; }while(key===lastKey && pool.length>1);
+  lastKey=key; current=key;
+  state='guessing'; autoRotate=false; foldAnim=null;
+
+  loadShape(key);
+  modelGroup.rotation.set(-0.55, 0.45, 0);   // 보기 좋은 각도로 초기화
+
+  el('qtag').textContent='문제 '+round;
+  el('question').textContent='이 전개도를 접으면 어떤 입체도형이 될까요?';
+  el('hint').textContent='손가락으로 돌려보며 살펴보세요 🔄';
+  el('resultbar').classList.add('hidden');
+
+  // 보기 만들기
+  const opts = [current, ...pickDistractors(current, 3)];
+  for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
+  const box = el('options'); box.innerHTML='';
+  opts.forEach(k=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.dataset.key=k;
+    b.innerHTML = ICONS[k];
+    b.style.color = ['#7c5cff','#ff6fb5','#3a8dff','#27c46b','#ff8c42'][Math.floor(Math.random()*5)];
+    b.addEventListener('click', ()=>choose(k, b));
+    box.appendChild(b);
+  });
+}
+
+function choose(key, btn){
+  if(state!=='guessing') return;
+  state='folding';
+  const correct = (key===current);
+  // 버튼 상태
+  document.querySelectorAll('.opt').forEach(b=>{
+    b.disabled=true;
+    if(b.dataset.key===current) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  // 점수
+  if(correct){ score+=1; streak++; confetti(); beep([523,659,784]); if(window.Hub) Hub.addScore('fold',1); }
+  else { streak=0; beep([200,160], 'sawtooth'); }
+  el('score').textContent=score; el('streak').textContent=streak;
+
+  // 결과 + 접기
+  el('result').innerHTML = correct
+    ? '정답이에요! 🎉<small>'+SHAPES[current].name+' 이(가) 완성됐어요</small>'
+    : '아쉬워요! 정답은 <b>'+SHAPES[current].name+'</b> 예요<small>접히는 모습을 함께 볼까요?</small>';
+  el('question').textContent='접으면 이렇게 변신해요!';
+  el('hint').textContent='돌려보고, 슬라이더로 펴고 접어보세요 ↔';
+  el('resultbar').classList.remove('hidden');
+  el('foldSlider').value=100;
+  el('playBtn').textContent='▶ 다시 접기';
+
+  startFold(1);
+}
+
+/* ============================================================
+   레벨 2: 입체 → (조각 개수 맞히기) → 전개도 만들기
+   ============================================================ */
+let LEVEL='l1', pendingLevel='l1';
+const stageEl = document.querySelector('.stage');
+const wrapEl  = document.querySelector('.wrap');
+const SVGNS='http://www.w3.org/2000/svg';
+const PIECE_NAMES={3:'삼각형',4:'사각형',5:'오각형',6:'육각형',7:'칠각형',8:'팔각형'};
+const PIECE_ROT ={3:-Math.PI/2,4:Math.PI/4,5:-Math.PI/2,6:0,7:-Math.PI/2,8:Math.PI/8};
+
+let l2manifest={}, l2userCounts={}, l2remaining={}, l2total=0;
+const SIDE_COLOR={3:'#ff5a6b',4:'#3a8dff',5:'#27c46b',6:'#ffcb2e',7:'#ff8c42',8:'#9b5de5'};
+const ALL_SIDES=[3,4,5,6];               // 항상 보여줄 기본 조각들(필요 없어도 0개로)
+// 레벨2는 '정다각형 타일로 정확히 만들 수 있고, 접힘 검증이 가능한' 도형만 사용
+const L2_KEYS=['cube','tetra','pyramid','prism','octa','pyr5','prism5','prism6','dodeca','icosa','cubocta','trunctetra'];
+const L2_POOLS={
+  easy:['cube','tetra','pyramid','prism','octa'],
+  mid: ['cube','tetra','pyramid','prism','octa','pyr5','prism5','prism6'],
+  hard:L2_KEYS
+};
+let boardSpan=8;
+const snapRange=()=>Math.max(1.7, boardSpan*0.22);   // 자석이 잡히는 넉넉한 범위(전개도 크기에 비례)
+const TAU=Math.PI*2;
+const Rof=S=>0.5/Math.sin(Math.PI/S), Aof=S=>0.5/Math.tan(Math.PI/S);
+
+function regPolyPoints(sides,cx,cy,r){
+  const rot=PIECE_ROT[sides]!=null?PIECE_ROT[sides]:-Math.PI/2, p=[];
+  for(let i=0;i<sides;i++){const a=rot+i*TAU/sides; p.push((cx+r*Math.cos(a)).toFixed(2)+','+(cy+r*Math.sin(a)).toFixed(2));}
+  return p.join(' ');
+}
+function pieceIcon(sides,color){
+  return '<svg class="pc-ico" viewBox="0 0 48 48"><polygon points="'+regPolyPoints(sides,24,24,18)+
+    '" fill="'+color+'" fill-opacity="0.2" stroke="'+color+'" stroke-width="3" stroke-linejoin="round"/></svg>';
+}
+function manifestOf(key){const m={}; SHAPES[key].faces.forEach(f=>{const s=f.verts.length; m[s]=(m[s]||0)+1;}); return m;}
+function pieceSidesFor(key){ return [...new Set([...ALL_SIDES, ...Object.keys(manifestOf(key)).map(Number)])].sort((a,b)=>a-b); }
+
+function setLayout(level){
+  const q=el('question'), o=el('options'), rb=el('resultbar'), l2=el('l2');
+  if(level==='l2'){
+    q.classList.add('hidden'); o.classList.add('hidden'); rb.classList.add('hidden');
+    l2.classList.remove('hidden');
+    const lc=el('l2left'); lc.insertBefore(stageEl, lc.firstChild);   // 입체를 왼쪽에
+  }else{
+    l2.classList.add('hidden');
+    q.classList.remove('hidden'); o.classList.remove('hidden');
+    wrapEl.insertBefore(stageEl, q);                                  // 스테이지 원위치
+  }
+  resize();
+}
+
+function newRoundL2(){
+  round++; el('qtag').textContent='문제 '+round;
+  const pool=L2_KEYS;
+  let key; do{ key=pool[Math.floor(Math.random()*pool.length)]; }while(key===lastKey && pool.length>1);
+  lastKey=key; current=key;
+
+  // 왼쪽: 완성된 입체(접힌 상태)로 표시 + 회전
+  loadShape(key); applyFold(1); foldT=1; foldAnim=null;
+  modelGroup.rotation.set(-0.55,0.45,0); state='revealed'; autoRotate=true;
+
+  l2manifest=manifestOf(key);
+  l2userCounts={}; pieceSidesFor(key).forEach(s=>l2userCounts[s]=0);
+  el('l2step1').classList.remove('hidden');
+  el('l2step2').classList.add('hidden');
+  el('cntMsg').textContent=''; el('cntMsg').className='l2-msg';
+  renderPieces();
+}
+
+/* ---- 1단계: 조각 개수 맞히기 (모든 종류 제시) ---- */
+function renderPieces(){
+  const box=el('pieces'); box.innerHTML='';
+  pieceSidesFor(current).forEach(s=>{
+    const color=SIDE_COLOR[s];
+    const d=document.createElement('div'); d.className='piece';
+    d.innerHTML='<div class="pc-ico-wrap">'+pieceIcon(s,color)+'</div>'+
+      '<div class="pc-name">'+PIECE_NAMES[s]+'</div>'+
+      '<div class="pc-row"><button data-d="-1">−</button>'+
+      '<div class="pc-cnt" id="cnt'+s+'">0</div>'+
+      '<button data-d="1">+</button></div>';
+    d.querySelector('.pc-ico-wrap').addEventListener('click',()=>adjustCount(s,1));
+    d.querySelectorAll('.pc-row button').forEach(b=>b.addEventListener('click',()=>adjustCount(s,+b.dataset.d)));
+    box.appendChild(d);
+  });
+}
+function adjustCount(s,delta){
+  l2userCounts[s]=Math.max(0,(l2userCounts[s]||0)+delta);
+  el('cnt'+s).textContent=l2userCounts[s];
+  beep([delta>0?560:360]);
+}
+function checkCount(){
+  const msg=el('cntMsg');
+  const ok=pieceSidesFor(current).every(s=>(l2userCounts[s]||0)===(l2manifest[s]||0));
+  if(ok){
+    msg.textContent='딱 맞아요! 이제 조각을 끌어다 전개도를 만들어요 ✏️'; msg.className='l2-msg ok';
+    beep([523,659,784]); confetti();
+    setTimeout(startBuild, 700);
+  }else{
+    msg.textContent='개수가 안 맞아요. 안 쓰는 조각은 0개로! 입체를 돌려보며 다시 세어봐요 🔍'; msg.className='l2-msg no';
+    beep([200,160],'sawtooth'); streak=0; el('streak').textContent=streak;
+  }
+}
+
+/* ---- 2단계: 자석 조각 드래그로 전개도 직접 만들기 ---- */
+let placed=[];        // {S, verts:[[x,y]..], c:[x,y]}
+let drag=null;        // {S, preview, snap}
+const svgEl=()=>el('netsvg');
+
+const centroidOf=vs=>{let x=0,y=0;vs.forEach(p=>{x+=p[0];y+=p[1];});return[x/vs.length,y/vs.length];};
+function polyVerts(S,cx,cy,rot){const R=Rof(S),o=[];for(let i=0;i<S;i++){const a=rot+i*TAU/S;o.push([cx+R*Math.cos(a),cy+R*Math.sin(a)]);}return o;}
+function mate(S,A,B,placedC){
+  const mid=[(A[0]+B[0])/2,(A[1]+B[1])/2];
+  let n=[mid[0]-placedC[0],mid[1]-placedC[1]];const L=Math.hypot(n[0],n[1])||1;n=[n[0]/L,n[1]/L];
+  const c=[mid[0]+Aof(S)*n[0], mid[1]+Aof(S)*n[1]], R=Rof(S), aA=Math.atan2(A[1]-c[1],A[0]-c[0]), vs=[];
+  for(let k=0;k<S;k++){const a=aA+k*TAU/S;vs.push([c[0]+R*Math.cos(a),c[1]+R*Math.sin(a)]);}
+  // 공유 변 끝점은 부모의 정확한 좌표를 재사용 (부동소수 오차로 모서리 매칭이 깨지는 것 방지)
+  let iA=0,iB=0,dA=1e9,dB=1e9;
+  for(let k=0;k<S;k++){
+    const da=(vs[k][0]-A[0])**2+(vs[k][1]-A[1])**2; if(da<dA){dA=da;iA=k;}
+    const db=(vs[k][0]-B[0])**2+(vs[k][1]-B[1])**2; if(db<dB){dB=db;iB=k;}
+  }
+  vs[iA]=[A[0],A[1]]; vs[iB]=[B[0],B[1]];
+  return {S,verts:vs,c};
+}
+function freeEdges(){
+  const rk=p=>p[0].toFixed(3)+','+p[1].toFixed(3), ek=(a,b)=>[rk(a),rk(b)].sort().join('|'), seen={};
+  placed.forEach(pc=>{for(let i=0;i<pc.S;i++){const a=pc.verts[i],b=pc.verts[(i+1)%pc.S];(seen[ek(a,b)]=seen[ek(a,b)]||[]).push({pc,a,b});}});
+  return Object.values(seen).filter(l=>l.length===1).map(l=>l[0]);
+}
+function pointInPoly(p,vs){let c=false;for(let i=0,j=vs.length-1;i<vs.length;j=i++){const xi=vs[i][0],yi=vs[i][1],xj=vs[j][0],yj=vs[j][1];if(((yi>p[1])!==(yj>p[1]))&&(p[0]<(xj-xi)*(p[1]-yi)/(yj-yi)+xi))c=!c;}return c;}
+function overlapAny(cand){for(const pc of placed){if(pointInPoly(cand.c,pc.verts))return true;if(pointInPoly(centroidOf(pc.verts),cand.verts))return true;}return false;}
+function connected(){
+  if(placed.length<=1)return true;
+  const rk=p=>p[0].toFixed(3)+','+p[1].toFixed(3), ek=(a,b)=>[rk(a),rk(b)].sort().join('|'), em={};
+  placed.forEach((pc,idx)=>{for(let i=0;i<pc.S;i++){const k=ek(pc.verts[i],pc.verts[(i+1)%pc.S]);(em[k]=em[k]||[]).push(idx);}});
+  const adj=placed.map(()=>[]); Object.values(em).forEach(l=>{if(l.length===2){adj[l[0]].push(l[1]);adj[l[1]].push(l[0]);}});
+  const seen=new Set([0]),q=[0]; while(q.length){const c=q.shift();adj[c].forEach(n=>{if(!seen.has(n)){seen.add(n);q.push(n);}});}
+  return seen.size===placed.length;
+}
+
+/* ----- 전개도 검증: 만든 평면도가 실제로 그 입체로 접히는지 확인 ----- */
+let l2foldPair={}, l2V=0;
+function rot3(ax,an,v){const c=Math.cos(an),s=Math.sin(an),d=ax[0]*v[0]+ax[1]*v[1]+ax[2]*v[2];
+  const cx=ax[1]*v[2]-ax[2]*v[1],cy=ax[2]*v[0]-ax[0]*v[2],cz=ax[0]*v[1]-ax[1]*v[0];
+  return[v[0]*c+cx*s+ax[0]*d*(1-c),v[1]*c+cy*s+ax[1]*d*(1-c),v[2]*c+cz*s+ax[2]*d*(1-c)];}
+function foldByPairOf(key){const sd={};SHAPES[key].faces.forEach(f=>sd[f.id]=f.verts.length);const bp={};
+  SHAPES[key].faces.forEach(f=>{if(!f.parent)return;const pr=[sd[f.id],sd[f.parent]].sort((a,b)=>a-b).join(',');bp[pr]=f.fold;});return bp;}
+function trueV(key){                                  // 정식 전개도를 접었을 때의 꼭짓점 수 = 그 입체의 꼭짓점 수
+  const faces=SHAPES[key].faces, fm={}; faces.forEach(f=>fm[f.id]=f); const info={};
+  faces.forEach(f=>{if(!f.parent){info[f.id]={A:[0,0,0],axis:[0,0,1],angle:0};return;}
+    const A=[f.hinge[0][0],f.hinge[0][1],0],B=[f.hinge[1][0],f.hinge[1][1],0];let ax=[B[0]-A[0],B[1]-A[1],0];const L=Math.hypot(ax[0],ax[1]);ax=[ax[0]/L,ax[1]/L,0];
+    let cx=0,cy=0;f.verts.forEach(p=>{cx+=p[0];cy+=p[1];});cx/=f.verts.length;cy/=f.verts.length;
+    let d=[cx-A[0],cy-A[1],0];const dd=d[0]*ax[0]+d[1]*ax[1];d=[d[0]-dd*ax[0],d[1]-dd*ax[1],0];
+    const sign=(ax[0]*d[1]-ax[1]*d[0])>=0?1:-1;info[f.id]={A,axis:ax,angle:sign*f.fold};});
+  function world(fid,p){let x=[p[0],p[1],0],cur=fid;while(fm[cur].parent){const I=info[cur];const r=rot3(I.axis,I.angle,[x[0]-I.A[0],x[1]-I.A[1],x[2]-I.A[2]]);x=[I.A[0]+r[0],I.A[1]+r[1],I.A[2]+r[2]];cur=fm[cur].parent;}return x;}
+  const cl=[];faces.forEach(f=>f.verts.forEach(p=>{const w=world(f.id,p);if(!cl.find(c=>Math.hypot(c[0]-w[0],c[1]-w[1],c[2]-w[2])<1.5e-2))cl.push(w);}));return cl.length;
+}
+// 만든 평면도(placed)가 닫힌 입체(목표)로 접히는 '진짜 전개도'인지 검사
+function netCloses(){
+  const n=placed.length, F=SHAPES[current].faces.length, V=l2V;
+  if(n!==F) return false;
+  const rk=p=>p[0].toFixed(3)+','+p[1].toFixed(3), ek=(a,b)=>[rk(a),rk(b)].sort().join('|'), em={};
+  placed.forEach((pc,idx)=>{for(let i=0;i<pc.S;i++){const k=ek(pc.verts[i],pc.verts[(i+1)%pc.S]);(em[k]=em[k]||[]).push({idx,a:pc.verts[i],b:pc.verts[(i+1)%pc.S]});}});
+  const adj=placed.map(()=>[]); let internal=0,bad=false;
+  Object.values(em).forEach(l=>{if(l.length===2){internal++;adj[l[0].idx].push({to:l[1].idx,A:l[0].a,B:l[0].b});adj[l[1].idx].push({to:l[0].idx,A:l[1].a,B:l[1].b});}else if(l.length>2)bad=true;});
+  if(bad||internal!==n-1) return false;                          // 트리(전개도) 구조가 아니면 거부
+  const parent=Array(n).fill(-2),pe=Array(n).fill(null),order=[];parent[0]=-1;const q=[0];
+  while(q.length){const c=q.shift();order.push(c);adj[c].forEach(e=>{if(parent[e.to]===-2){parent[e.to]=c;pe[e.to]={A:e.A,B:e.B};q.push(e.to);}});}
+  if(order.length!==n) return false;
+  const info={};
+  for(const idx of order){
+    if(parent[idx]===-1){info[idx]={A:[0,0,0],axis:[0,0,1],angle:0};continue;}
+    const A=[pe[idx].A[0],pe[idx].A[1],0],B=[pe[idx].B[0],pe[idx].B[1],0];let ax=[B[0]-A[0],B[1]-A[1],0];const L=Math.hypot(ax[0],ax[1]);ax=[ax[0]/L,ax[1]/L,0];
+    const cen=centroidOf(placed[idx].verts);let d=[cen[0]-A[0],cen[1]-A[1],0];const dd=d[0]*ax[0]+d[1]*ax[1];d=[d[0]-dd*ax[0],d[1]-dd*ax[1],0];
+    const sign=(ax[0]*d[1]-ax[1]*d[0])>=0?1:-1;
+    const pair=[placed[idx].S,placed[parent[idx]].S].sort((a,b)=>a-b).join(',');
+    const fold=l2foldPair[pair]; if(fold==null) return false;
+    info[idx]={A,axis:ax,angle:sign*fold};
+  }
+  function world(idx,p){let x=[p[0],p[1],0],cur=idx;while(parent[cur]!==-1){const I=info[cur];const r=rot3(I.axis,I.angle,[x[0]-I.A[0],x[1]-I.A[1],x[2]-I.A[2]]);x=[I.A[0]+r[0],I.A[1]+r[1],I.A[2]+r[2]];cur=parent[cur];}return x;}
+  const faces3=[]; for(let idx=0;idx<n;idx++)faces3.push(placed[idx].verts.map(v=>world(idx,v)));
+  const cl=[]; const cid=p=>{for(let i=0;i<cl.length;i++){const c=cl[i];if(Math.hypot(c[0]-p[0],c[1]-p[1],c[2]-p[2])<1.5e-2)return i;}cl.push(p);return cl.length-1;};
+  const fC=faces3.map(f=>f.map(cid));
+  if(cl.length!==V) return false;                                // 꼭짓점 수가 맞아야
+  const fk=new Set(fC.map(f=>[...f].sort((a,b)=>a-b).join(','))); if(fk.size!==n) return false;   // 면이 겹치면 거부
+  const ec={}; fC.forEach(f=>{for(let i=0;i<f.length;i++){const k=[f[i],f[(i+1)%f.length]].sort((a,b)=>a-b).join('-');ec[k]=(ec[k]||0)+1;}});
+  if(Object.values(ec).some(c=>c!==2)) return false;             // 닫힌 면(모든 모서리가 정확히 2면 공유)
+  const E=Object.keys(ec).length; if(cl.length-E+n!==2) return false;   // 오일러 공식
+  return true;
+}
+
+function startBuild(){
+  el('l2step1').classList.add('hidden');
+  el('l2step2').classList.remove('hidden');
+  el('l2next').classList.add('hidden');
+  l2total=SHAPES[current].faces.length;
+  l2foldPair=foldByPairOf(current); l2V=trueV(current);   // 검증용 정보 준비
+  l2remaining={}; pieceSidesFor(current).forEach(s=>l2remaining[s]=l2manifest[s]||0);
+  placed=[]; drag=null;
+  const span=Math.min(17, Math.max(6, Math.ceil(Math.sqrt(l2total)*2.5)));
+  boardSpan=span;
+  svgEl().setAttribute('viewBox',(-span/2)+' '+(-span/2)+' '+span+' '+span);
+  buildMsg('조각을 board 위로 끌어다 놓아요 (자석처럼 붙어요)');
+  renderBoard(); renderTray();
+}
+function buildMsg(m,c){ const e=el('buildMsg'); e.textContent=m; e.className='l2-msg '+(c||''); }
+
+function svgPoly(verts,fill,fillOp,stroke,sw,dash){
+  const p=document.createElementNS(SVGNS,'polygon');
+  p.setAttribute('points',verts.map(v=>v[0].toFixed(4)+','+v[1].toFixed(4)).join(' '));
+  p.setAttribute('fill',fill); p.setAttribute('fill-opacity',fillOp);
+  p.setAttribute('stroke',stroke); p.setAttribute('stroke-width',sw);
+  p.setAttribute('stroke-linejoin','round'); p.setAttribute('vector-effect','non-scaling-stroke');
+  if(dash) p.setAttribute('stroke-dasharray',dash);
+  return p;
+}
+function renderBoard(){
+  const svg=svgEl(); svg.innerHTML='';
+  if(placed.length===0 && !drag){
+    const t=document.createElementNS(SVGNS,'text');
+    t.setAttribute('x',0); t.setAttribute('y',0); t.setAttribute('text-anchor','middle');
+    t.setAttribute('fill','#b9a9da'); t.setAttribute('font-size','0.6'); t.setAttribute('font-family','Gaegu, cursive');
+    t.textContent='여기로 조각을 끌어다 놓아요';
+    svg.appendChild(t);
+  }
+  placed.forEach(pc=>{const col=SIDE_COLOR[pc.S]; svg.appendChild(svgPoly(pc.verts,col,'0.24',col,'2.6'));});
+  if(drag&&drag.preview){
+    const col=SIDE_COLOR[drag.S];
+    svg.appendChild(svgPoly(drag.preview.verts, col, drag.snap?'0.30':'0.14', col, drag.snap?'3.2':'2', drag.snap?null:'4 4'));
+  }
+}
+function renderTray(){
+  const tray=el('tray'); tray.innerHTML='';
+  pieceSidesFor(current).forEach(s=>{
+    if((l2manifest[s]||0)===0 && (l2remaining[s]||0)===0 && !ALL_SIDES.includes(s)) return;
+    const color=SIDE_COLOR[s], rem=l2remaining[s]||0;
+    const t=document.createElement('div'); t.className='tslot'+(rem<=0?' empty':''); t.dataset.sides=s;
+    t.innerHTML=pieceIcon(s,color)+'<div class="ts-cnt">'+PIECE_NAMES[s]+' ×'+rem+'</div>';
+    t.addEventListener('pointerdown',ev=>{ if(rem>0){ ev.preventDefault(); startDrag(s,ev); } });
+    tray.appendChild(t);
+  });
+}
+
+function clientToSvg(x,y){
+  const svg=svgEl(), pt=svg.createSVGPoint(); pt.x=x; pt.y=y;
+  const m=svg.getScreenCTM(); if(!m) return [0,0];
+  const r=pt.matrixTransform(m.inverse()); return [r.x,r.y];
+}
+function startDrag(S,ev){
+  drag={S, preview:null, snap:false, pid:ev.pointerId};
+  dragMove(ev);
+  window.addEventListener('pointermove',dragMove,{passive:false});
+  window.addEventListener('pointerup',dragEnd,{passive:false});
+  window.addEventListener('pointercancel',dragEnd,{passive:false});
+}
+// 포인터에 가장 가까운(겹치지 않는) 빈 모서리에 붙일 후보를 찾는다 — 조각은 자동으로 회전해 끼워맞춰짐
+function bestEdge(p){
+  const cand=freeEdges().map(e=>{
+    const mid=[(e.a[0]+e.b[0])/2,(e.a[1]+e.b[1])/2];
+    return {e, d:Math.hypot(mid[0]-p[0],mid[1]-p[1])};
+  }).sort((x,y)=>x.d-y.d);
+  for(const it of cand){
+    const m=mate(drag.S, it.e.a, it.e.b, centroidOf(it.e.pc.verts));
+    if(!overlapAny(m)) return {mate:m, d:it.d};
+  }
+  return null;
+}
+function dragMove(ev){
+  if(!drag) return; ev.preventDefault && ev.preventDefault();
+  const p=clientToSvg(ev.clientX,ev.clientY);
+  if(placed.length===0){
+    drag.preview={S:drag.S,verts:polyVerts(drag.S,p[0],p[1],-Math.PI/2),c:[p[0],p[1]]}; drag.snap=false;
+  }else{
+    const b=bestEdge(p);
+    if(b && b.d < snapRange()){ drag.preview=b.mate; drag.snap=true; }      // 자석 범위 안 → 모서리에 착 달라붙음
+    else { drag.preview={S:drag.S,verts:polyVerts(drag.S,p[0],p[1],-Math.PI/2),c:[p[0],p[1]]}; drag.snap=false; }
+  }
+  renderBoard();
+}
+function dragEnd(ev){
+  window.removeEventListener('pointermove',dragMove);
+  window.removeEventListener('pointerup',dragEnd);
+  window.removeEventListener('pointercancel',dragEnd);
+  if(!drag){ return; }
+  const S=drag.S; let committed=false;
+  if(placed.length===0 && drag.preview){ placed.push(drag.preview); committed=true; }
+  else if(placed.length>0){
+    const p=clientToSvg(ev.clientX,ev.clientY);
+    const b=bestEdge(p);
+    if(b && b.d < snapRange()){ placed.push(b.mate); committed=true; }       // 놓는 순간에도 가장 가까운 모서리에 붙임
+  }
+  drag=null;
+  if(committed){
+    l2remaining[S]--; beep([620]);
+    buildMsg(placed.length>=l2total ? '' : '착! 붙었어요 ('+placed.length+'/'+l2total+')', 'ok');
+  }else{
+    beep([180],'sawtooth'); buildMsg('조각을 다른 조각의 모서리 가까이로 가져가면 자석처럼 붙어요','no');
+  }
+  renderBoard(); renderTray();
+  if(committed && placed.length>=l2total){
+    if(netCloses()) buildComplete();
+    else { beep([196,147],'sawtooth'); buildMsg('음… 이렇게 접으면 이 입체가 안 돼요. 「↩ 한 개 빼기」로 배치를 바꿔볼까요? 🤔','no'); }
+  }
+}
+function undoPiece(){
+  if(!placed.length) return;
+  const p=placed.pop(); l2remaining[p.S]=(l2remaining[p.S]||0)+1;
+  el('l2next').classList.add('hidden'); beep([360]);
+  renderBoard(); renderTray(); buildMsg('조각 하나를 뺐어요');
+}
+function resetBoard(){
+  placed=[]; drag=null;
+  l2remaining={}; pieceSidesFor(current).forEach(s=>l2remaining[s]=l2manifest[s]||0);
+  el('l2next').classList.add('hidden'); beep([300]);
+  renderBoard(); renderTray(); buildMsg('처음부터 다시 만들어요');
+}
+
+function buildComplete(){
+  buildMsg('전개도 완성! 🎉 접으면 이 입체가 돼요','ok');
+  confetti(); beep([523,659,784,1047]);
+  score+=2; streak++; if(window.Hub) Hub.addScore('fold',2);
+  el('score').textContent=score; el('streak').textContent=streak;
+  el('l2next').classList.remove('hidden');
+  applyFold(0); foldT=0; state='folding'; autoRotate=false; startFold(1);  // 왼쪽 보상 애니메이션
+}
+
+function goHome(){
+  setLayout('l1'); LEVEL='l1';
+  el('intro').classList.remove('hidden');
+}
+
+
+el('foldSlider').addEventListener('input', e=>{
+  if(state==='guessing') return;
+  foldAnim=null; autoRotate=false; state='revealed';
+  applyFold(e.target.value/100);
+});
+el('playBtn').addEventListener('click', ()=>{
+  if(state==='guessing') return;
+  autoRotate=false;
+  if(foldT>0.5){ startFold(0); el('playBtn').textContent='▶ 다시 접기'; }
+  else { startFold(1); el('playBtn').textContent='◀ 펼치기'; }
+  state='revealed';
+});
+el('nextBtn').addEventListener('click', newRound);
+el('soundBtn').addEventListener('click', ()=>{
+  soundOn=!soundOn; el('soundBtn').textContent = soundOn?'🔊':'🔇';
+  if(soundOn) beep([660]);
+});
+document.querySelectorAll('.lvbtn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.lvbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); pendingLevel=b.dataset.level;
+  });
+});
+el('startBtn').addEventListener('click', ()=>{
+  try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  el('intro').classList.add('hidden');
+  if(pendingLevel==='l2'){ LEVEL='l2'; setLayout('l2'); newRoundL2(); }
+  else { LEVEL='l1'; setLayout('l1'); resize(); newRound(); }
+});
+el('checkCount').addEventListener('click', checkCount);
+el('l2next').addEventListener('click', newRoundL2);
+el('undoPiece').addEventListener('click', undoPiece);
+el('resetBoard').addEventListener('click', resetBoard);
+el('homeBtn').addEventListener('click', goHome);
+
+/* ---------------- 허브(부화점) 연동 ---------------- */
+function refreshEgg(){ const e=el('eggPts'); if(e) e.textContent = window.Hub ? Hub.available() : 0; }
+el('dexBtn').addEventListener('click', ()=>{ if(window.Hub) Hub.openDex(); });
+document.addEventListener('hubchange', refreshEgg);
+refreshEgg();
+
+/* ---------------- 시작 ---------------- */
+resize();
+loadShape('cube');           // 인트로 뒤 배경용
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
