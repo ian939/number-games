@@ -685,6 +685,7 @@ function piecesFitsSlot(p, s) {
   return true;                                               // 크기·방향(꼭짓점)이 슬롯과 일치
 }
 function trySnap(p) {
+  if (!p) return;                      // 회전 중 선택 해제 등으로 대상이 사라진 경우 방어
   if (!slots.length) { trySnapFreeplay(p); return; }
   let best = null, bestd = 1e9;
   for (const s of slots) {
@@ -762,8 +763,9 @@ cv.addEventListener('pointercancel', endDrag);
 rotateBtn.addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopPropagation();
   if (!selected || selected.anim) return;
-  selected.locked = false;
-  selected.startAnim(selected.x, selected.y, selected.rotation + Math.PI / 4, 160, () => trySnap(selected));
+  const p = selected;                 // 애니메이션 완료 시점에 selected가 바뀌어도 이 조각을 스냅
+  p.locked = false;
+  p.startAnim(p.x, p.y, p.rotation + Math.PI / 4, 160, () => trySnap(p));
 });
 
 // 뒤집기 버튼 (평행사변형 전용)
@@ -841,6 +843,7 @@ function drawPoly(c, verts, fill, stroke, lw, dash) {
 }
 
 function render(now) {
+  try {
   pieces.forEach(p => p.tick(now));
   positionRotateBtn();
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
@@ -898,7 +901,7 @@ function render(now) {
       else popFlash = null;
     }
   });
-
+  } catch (err) { if (window.console) console.error('칠교 render 오류:', err); }
   requestAnimationFrame(render);
 }
 
