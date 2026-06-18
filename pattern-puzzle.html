@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>딩! 패턴 퍼즐</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Fredoka:wght@500;600;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt:#2f6b5e; --felt-deep:#245247;
+    --paper:#fbf9f3; --paper-shade:#efe9da;
+    --ink:#26221d;
+    --apricot:#e8954f; --apricot-hi:#f2a85f; --apricot-lo:#d97f37;
+    --blue:#4f8fe0; --blue-hi:#69a3ed; --blue-lo:#3b76c9;
+    --green:#5ca860; --green-hi:#74bd78; --green-lo:#458a49;
+    --star:#f1b84a;
+    --brass:#e9c45e; --brass-lo:#b88a23;
+    --cream:#f3efe4; --cream-dim:#cdd6cf;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Gowun Dodum','Pretendard',system-ui,sans-serif;color:var(--cream);
+    background:radial-gradient(120% 80% at 50% -10%, #3a7e6f 0%, var(--felt) 42%, var(--felt-deep) 100%);
+    min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+    padding:max(12px,env(safe-area-inset-top)) 14px max(16px,env(safe-area-inset-bottom));
+    overflow-x:hidden;position:relative;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;z-index:0;
+    background-image:repeating-linear-gradient(45deg,#000 0 1px,transparent 1px 3px);}
+  .wrap{width:100%;max-width:480px;position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .brand{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .brand h1{font-family:'Jua',sans-serif;font-weight:400;margin:0;font-size:27px;line-height:1;color:#fff;letter-spacing:.5px;text-shadow:0 2px 0 rgba(0,0,0,.18);}
+  .brand .ding{color:var(--brass);}
+  .levelpill{font-family:'Jua',sans-serif;font-size:13px;color:#3a2410;background:var(--brass);
+    padding:3px 10px;border-radius:999px;box-shadow:0 2px 0 var(--brass-lo);}
+  .hdr-btns{display:flex;gap:6px;}
+  .iconbtn{border:none;background:rgba(255,255,255,.12);color:var(--cream);width:40px;height:40px;
+    border-radius:12px;font-size:18px;cursor:pointer;display:grid;place-items:center;transition:background .15s,transform .1s;}
+  .iconbtn:active{transform:scale(.92);}
+  .iconbtn:hover{background:rgba(255,255,255,.2);}
+
+  .scoreboard{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .stat{background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.18));border:1px solid rgba(255,255,255,.10);
+    border-radius:14px;padding:8px;text-align:center;}
+  .stat .label{font-size:11px;color:var(--cream-dim);letter-spacing:.3px;}
+  .stat .value{font-family:'Fredoka',sans-serif;font-weight:700;font-size:24px;line-height:1.05;color:#fff;}
+  .stat .value.time{font-variant-numeric:tabular-nums;}
+
+  .target-row{display:flex;align-items:center;gap:11px;}
+  .target-label{font-family:'Jua',sans-serif;font-size:15px;color:var(--cream);writing-mode:vertical-rl;
+    text-orientation:upright;letter-spacing:2px;background:rgba(0,0,0,.16);border-radius:10px;padding:8px 4px;}
+  .target-card{background:var(--paper);border-radius:8px;padding:7px;box-shadow:0 4px 10px rgba(0,0,0,.25);}
+  .mini{display:grid;gap:0;border:2.5px solid var(--ink);}
+  .mini div{border:1px solid var(--ink);}
+  .mini div.a{background:var(--apricot);}
+  .mini div.b{background:var(--blue);}
+  .mini div.c{background:var(--green);}
+  .hint{font-size:12.5px;color:var(--cream-dim);line-height:1.5;flex:1;}
+  .hint b{color:#fff;font-family:'Jua',sans-serif;font-weight:400;}
+
+  .board-stage{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .board{position:relative;background:var(--ink);display:grid;gap:6px;padding:6px;border-radius:10px;
+    box-shadow:0 14px 26px rgba(0,0,0,.32),inset 0 0 0 1px rgba(255,255,255,.05);touch-action:manipulation;}
+  .tile{position:relative;cursor:pointer;border-radius:4px;overflow:hidden;background:var(--paper);
+    transition:transform .26s cubic-bezier(.34,1.4,.5,1),box-shadow .15s;box-shadow:0 2px 5px rgba(0,0,0,.22);will-change:transform;}
+  .tile:active{box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .tile::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(var(--ink),var(--ink)) center/100% 2.5px no-repeat,
+               linear-gradient(var(--ink),var(--ink)) center/2.5px 100% no-repeat;}
+  .fill{position:absolute;width:50%;height:50%;}
+  .fill.a{background:linear-gradient(135deg,var(--apricot-hi),var(--apricot-lo));}
+  .fill.b{background:linear-gradient(135deg,var(--blue-hi),var(--blue-lo));}
+  .fill.c{background:linear-gradient(135deg,var(--green-hi),var(--green-lo));}
+  .board.solved .tile{animation:pop .4s ease;}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{}}
+  .board.nudge{animation:nudge .3s;}
+  @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .tap-hint{font-size:12px;color:var(--cream-dim);}
+
+  .bell-zone{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:2px;}
+  .bell{width:84px;height:68px;cursor:pointer;filter:drop-shadow(0 8px 10px rgba(0,0,0,.3));transition:transform .12s;}
+  .bell:active{transform:scale(.94);}
+  .bell.ring{animation:ring .6s ease;transform-origin:50% 90%;}
+  @keyframes ring{0%,100%{transform:rotate(0)}15%{transform:rotate(-9deg)}30%{transform:rotate(7deg)}45%{transform:rotate(-5deg)}60%{transform:rotate(3deg)}75%{transform:rotate(-1deg)}}
+  .bell-cap{font-family:'Jua',sans-serif;font-size:13px;color:var(--cream-dim);}
+
+  /* 실시간 별 게이지 */
+  .starmeter{background:rgba(0,0,0,.16);border-radius:14px;padding:9px 10px;text-align:center;}
+  .stars{display:flex;justify-content:center;gap:6px;}
+  .stars span{font-size:27px;line-height:1;color:var(--star);transition:color .35s,transform .35s;}
+  .stars span.dim{color:rgba(255,255,255,.16);transform:scale(.84);}
+  .meter-cap{font-size:11.5px;color:var(--cream-dim);margin-top:4px;}
+
+  .toast{position:fixed;left:50%;top:18%;transform:translateX(-50%) translateY(-12px);z-index:40;
+    background:var(--paper);color:var(--ink);border:4px solid #fff;border-radius:16px;padding:12px 18px;
+    text-align:center;box-shadow:0 14px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast .big{font-family:'Jua',sans-serif;font-size:22px;color:var(--apricot-lo);}
+
+  .overlay{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:24px;
+    background:rgba(20,40,36,.72);backdrop-filter:blur(3px);}
+  .overlay.show{display:flex;}
+  .panel{width:100%;max-width:340px;background:var(--paper);color:var(--ink);border-radius:22px;padding:24px 22px;
+    text-align:center;box-shadow:0 24px 50px rgba(0,0,0,.4);border:5px solid #fff;animation:rise .35s cubic-bezier(.2,.9,.3,1.2);}
+  @keyframes rise{from{transform:translateY(24px) scale(.96);opacity:0}to{}}
+  .panel h2{font-family:'Jua',sans-serif;font-weight:400;font-size:26px;margin:0 0 6px;color:#1f2a26;}
+  .panel p{font-size:14px;color:#5a5247;margin:6px 0;line-height:1.6;}
+  .panel p.fine{font-size:12.5px;color:#8a8073;}
+  .lv-info{font-size:13.5px;color:#5a5247;background:#f1ece0;border-radius:12px;padding:10px 12px;margin:10px 0;line-height:1.7;}
+  .lv-info b{color:var(--apricot-lo);font-family:'Jua',sans-serif;font-weight:400;}
+  .result-stars{display:flex;justify-content:center;gap:7px;margin:8px 0 4px;}
+  .result-stars span{font-size:40px;line-height:1;color:rgba(0,0,0,.12);display:inline-block;}
+  .result-stars span.on{color:var(--star);animation:starpop .42s cubic-bezier(.2,.9,.3,1.4);}
+  @keyframes starpop{0%{transform:scale(.3)}60%{transform:scale(1.28)}100%{transform:scale(1)}}
+  .result-time{font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;color:#3a332b;}
+  .total-stars{font-size:13px;color:#6a6052;margin-top:2px;}
+  .total-stars b{color:var(--apricot-lo);}
+
+  .swatches{display:flex;gap:8px;justify-content:center;margin:10px 0 2px;}
+  .sw{width:26px;height:26px;border:2px solid var(--ink);border-radius:6px;}
+  .sw.a{background:var(--apricot);} .sw.b{background:var(--blue);} .sw.c{background:var(--green);}
+
+  .btn{margin-top:14px;width:100%;border:none;cursor:pointer;font-family:'Jua',sans-serif;font-size:20px;color:#fff;
+    background:linear-gradient(180deg,var(--apricot-hi),var(--apricot-lo));border-radius:14px;padding:14px;letter-spacing:.5px;
+    box-shadow:0 5px 0 #b56a26;transition:transform .08s,box-shadow .08s;}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b56a26;}
+
+  .confetti{position:fixed;top:-20px;z-index:25;pointer-events:none;border-radius:2px;}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001s!important;transition-duration:.05s!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1><span class="ding">딩!</span> 패턴 퍼즐</h1>
+      <span class="levelpill" id="levelPill">레벨 1</span>
+    </div>
+    <div class="hdr-btns">
+      <button class="iconbtn" id="homeBtn" title="처음으로" aria-label="처음으로">🏠</button>
+      <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리">🔔</button>
+    </div>
+  </header>
+
+  <div class="scoreboard">
+    <div class="stat"><div class="label">문제</div><div class="value" id="probV">1/5</div></div>
+    <div class="stat"><div class="label">누적 별</div><div class="value" id="starsV">0</div></div>
+    <div class="stat"><div class="label">시간</div><div class="value time" id="timeV">0:00</div></div>
+  </div>
+
+  <div class="target-row">
+    <div class="target-label">목표</div>
+    <div class="target-card"><div class="mini" id="target"></div></div>
+    <div class="hint">조각을 <b>탭</b>해 90° 돌려서<br>칸 색을 <b>목표</b>와 똑같이!</div>
+  </div>
+
+  <div class="board-stage">
+    <div class="board" id="board" aria-label="퍼즐 보드"></div>
+    <div class="tap-hint">5문제를 빠르게 풀어 별을 모으세요</div>
+  </div>
+
+  <div class="bell-zone">
+    <svg class="bell" id="bell" viewBox="0 0 120 96" aria-label="종">
+      <ellipse cx="60" cy="86" rx="46" ry="8" fill="#1c413a" opacity=".4"/>
+      <rect x="14" y="74" width="92" height="12" rx="6" fill="#e57aa0"/>
+      <rect x="14" y="74" width="92" height="6" rx="3" fill="#f59cbb"/>
+      <path d="M22 74 C22 36 40 16 60 16 C80 16 98 36 98 74 Z" fill="url(#dome)" stroke="#9aa0a6" stroke-width="1.5"/>
+      <ellipse cx="48" cy="40" rx="10" ry="20" fill="#fff" opacity=".5"/>
+      <circle cx="60" cy="14" r="8" fill="#f59cbb" stroke="#e57aa0" stroke-width="2"/>
+      <circle cx="60" cy="14" r="3" fill="#fff"/>
+      <defs><linearGradient id="dome" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fdfdfd"/><stop offset="0.5" stop-color="#d7dbdf"/><stop offset="1" stop-color="#aeb4ba"/>
+      </linearGradient></defs>
+    </svg>
+    <div class="bell-cap">맞추면 딩~ 🛎️</div>
+  </div>
+
+  <div class="starmeter">
+    <div class="stars" id="liveStars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+    <div class="meter-cap" id="meterCap">기준 50초 · 10초마다 ★ 하나씩 줄어요</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><div class="big" id="toastBig"></div></div>
+
+<!-- 시작 / 처음 -->
+<div class="overlay show" id="startOv">
+  <div class="panel">
+    <h2>딩! 패턴 퍼즐</h2>
+    <p>한 레벨은 <b>문제 5개</b>!<br>시간 안에 다 풀면 별 ★5개를 받아요.</p>
+    <div class="swatches"><div class="sw a"></div><div class="sw b"></div><div class="sw c"></div></div>
+    <div class="lv-info">
+      이번 도전: <b id="startLvName">레벨 1</b> · <span id="startLvMeta">4조각 · 2색</span><br>
+      기준 <b id="startBase">50</b>초, <b id="startStep">10</b>초마다 ★ −1
+    </div>
+    <p class="fine">레벨1 → 레벨2 → 레벨3 → 다시 레벨1 순서로 이어져요.</p>
+    <button class="btn" id="startBtn">레벨 1 시작</button>
+  </div>
+</div>
+
+<!-- 레벨 완료 결과 -->
+<div class="overlay" id="resultOv">
+  <div class="panel">
+    <h2 id="resultTitle">레벨 1 완료!</h2>
+    <div class="result-stars" id="starRow"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+    <div class="result-time" id="resultTime">총 0:52</div>
+    <p id="resultMsg">잘했어요!</p>
+    <div class="total-stars">누적 별 <b id="totalStarsV">5</b>개</div>
+    <button class="btn" id="nextLevelBtn">레벨 2 시작 →</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const POS=[[0,0],[0,1],[1,1],[1,0]];
+  const CORNER_XY=[[0,0],[50,0],[50,50],[0,50]];
+  const PROBLEMS_PER_LEVEL=5;
+
+  const LEVELS=[
+    {name:'레벨 1', tx:2, ty:2, colors:2, base:50,  step:10, label:'4조각 · 2색'},
+    {name:'레벨 2', tx:3, ty:2, colors:2, base:100, step:20, label:'6조각 · 2색'},
+    {name:'레벨 3', tx:3, ty:3, colors:3, base:150, step:30, label:'9조각 · 3색'},
+  ];
+
+  let tx=2, ty=2, colors=2, stamp=[];
+  let target=[], tiles=[];
+  let currentLevel=0, pendingLevel=0, problemsSolved=0, totalStars=0;
+  let levelStartTime=0, timerId=null, locked=true, muted=false;
+
+  const $=id=>document.getElementById(id);
+  const boardEl=$('board'), targetEl=$('target');
+  const liveStarSpans=$('liveStars').querySelectorAll('span');
+  const resultStarSpans=$('starRow').querySelectorAll('span');
+
+  // ── 오디오 ──
+  let actx=null;
+  function ac(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return actx; }
+  function tone(f,type,dur,vol){ if(muted)return; const c=ac(); if(!c)return;
+    const o=c.createOscillator(),g=c.createGain(); o.type=type; o.frequency.value=f; const t=c.currentTime;
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(c.destination); o.start(t); o.stop(t+dur+.02); }
+  function tick(){ tone(520,'triangle',.09,.16); }
+  function blip(f){ tone(f,'sine',.18,.2); }
+  function ding(){ if(muted)return; const c=ac(); if(!c)return;
+    [1318,1976,2637].forEach(f=>{ const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.value=f;
+      const t=c.currentTime; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(f===1318?.25:.12,t+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,t+1.1); o.connect(g).connect(c.destination); o.start(t); o.stop(t+1.2); }); }
+
+  // ── 레벨/스탬프 ──
+  function makeStamp(n){
+    if(n===1) return [{corner:0,color:'a'}];
+    if(n===2) return [{corner:0,color:'a'},{corner:1,color:'b'}];
+    return [{corner:0,color:'a'},{corner:1,color:'b'},{corner:3,color:'c'}];
+  }
+  function applyLevel(){ const L=LEVELS[currentLevel]; tx=L.tx; ty=L.ty; colors=L.colors; stamp=makeStamp(colors);
+    $('levelPill').textContent=L.name; $('meterCap').textContent=`기준 ${L.base}초 · ${L.step}초마다 ★ 하나씩 줄어요`; }
+
+  // ── 별 계산 ──
+  function starsForTime(sec,lv){ const L=LEVELS[lv]; return Math.max(0, 5 - Math.max(0, Math.ceil((sec - L.base)/L.step))); }
+  function renderLiveStars(k){ liveStarSpans.forEach((s,i)=>s.classList.toggle('dim', i>=k)); }
+
+  // ── 보드 ──
+  function cellPx(){
+    const maxW=Math.min(window.innerWidth-28,460);
+    const gap=6,pad=12,cols=tx*2;
+    let c=Math.floor((maxW-pad-(tx-1)*gap)/cols);
+    return Math.max(28,Math.min(84,c));
+  }
+  function buildBoard(){
+    const cp=cellPx(), tileW=cp*2;
+    boardEl.style.gridTemplateColumns=`repeat(${tx}, ${tileW}px)`;
+    boardEl.style.gridTemplateRows=`repeat(${ty}, ${tileW}px)`;
+    boardEl.innerHTML='';
+    const n=tx*ty;
+    for(let q=0;q<n;q++){
+      const tile=document.createElement('div'); tile.className='tile';
+      stamp.forEach(s=>{ const f=document.createElement('div'); f.className='fill '+s.color;
+        const[x,y]=CORNER_XY[s.corner]; f.style.left=x+'%'; f.style.top=y+'%'; tile.appendChild(f); });
+      tile.addEventListener('click',()=>rotate(q));
+      boardEl.appendChild(tile);
+    }
+    renderTiles();
+  }
+  function renderTiles(){ const ch=boardEl.children; for(let q=0;q<ch.length;q++) ch[q].style.transform='rotate('+(tiles[q]*90)+'deg)'; }
+
+  function statesGrid(rot){
+    const cols=tx*2, rows=ty*2, g=Array(cols*rows).fill(0);
+    for(let r=0;r<ty;r++)for(let c=0;c<tx;c++){
+      const q=r*tx+c, rr=rot[q], br=r*2, bc=c*2;
+      stamp.forEach(s=>{ const corner=(s.corner+rr)%4; const[dr,dc]=POS[corner]; g[(br+dr)*cols+(bc+dc)]=s.color; });
+    }
+    return {g,cols,rows};
+  }
+  function renderTarget(){
+    const {g,cols,rows}=statesGrid(target);
+    const mc=cols<=4?20:cols<=6?15:12;
+    targetEl.style.gridTemplateColumns=`repeat(${cols},${mc}px)`;
+    targetEl.style.gridTemplateRows=`repeat(${rows},${mc}px)`;
+    targetEl.innerHTML='';
+    for(let i=0;i<g.length;i++){ const d=document.createElement('div'); if(g[i]) d.className=g[i]; targetEl.appendChild(d); }
+  }
+
+  function rotate(q){ if(locked)return;
+    tiles[q]=(tiles[q]+1)%4; boardEl.children[q].style.transform='rotate('+(tiles[q]*90)+'deg)'; tick();
+    if(solvedState()) onSolve(); }
+  function solvedState(){ for(let q=0;q<tiles.length;q++) if(tiles[q]%4!==target[q]) return false; return true; }
+
+  // ── 시계 ──
+  function fmt(s){ const m=Math.floor(s/60),ss=s%60; return m+':'+(ss<10?'0':'')+ss; }
+  function startClock(){ levelStartTime=Date.now();
+    timerId=setInterval(()=>{ const sec=Math.floor((Date.now()-levelStartTime)/1000);
+      $('timeV').textContent=fmt(sec); renderLiveStars(starsForTime(sec,currentLevel)); },200); }
+  function stopClock(){ if(timerId){clearInterval(timerId);timerId=null;} }
+
+  // ── 문제 ──
+  function rnd(){ return Math.floor(Math.random()*4); }
+  function randomState(n){ return Array.from({length:n},rnd); }
+  function nonZero(a){ let n=0; for(const v of a) if(v!==0) n++; return n; }
+
+  function loadProblem(){
+    applyLevel();
+    const n=tx*ty, needed=Math.max(2,Math.ceil(n*0.6));
+    do{ target=randomState(n); }while(nonZero(target)<needed);
+    tiles=Array(n).fill(0);
+    buildBoard(); renderTarget();
+    $('probV').textContent=(problemsSolved+1)+'/'+PROBLEMS_PER_LEVEL;
+    locked=false;
+  }
+
+  function onSolve(){
+    locked=true; problemsSolved++;
+    boardEl.classList.add('solved'); setTimeout(()=>boardEl.classList.remove('solved'),380);
+    if(problemsSolved<PROBLEMS_PER_LEVEL){
+      blip(700);                      // 한 문제 클리어 → 바로 다음 문제
+      setTimeout(loadProblem,420);
+    } else {
+      ringBell();                     // 5문제 모두 클리어
+      setTimeout(levelComplete,520);
+    }
+  }
+
+  function levelComplete(){
+    stopClock();
+    const sec=Math.max(0,Math.floor((Date.now()-levelStartTime)/1000));
+    const stars=starsForTime(sec,currentLevel);
+    totalStars+=stars; $('starsV').textContent=totalStars; $('totalStarsV').textContent=totalStars;
+    confettiBurst();
+    $('resultTitle').textContent=LEVELS[currentLevel].name+' 완료!';
+    $('resultTime').textContent='총 '+fmt(sec)+' ('+sec+'초)';
+    $('resultMsg').textContent = stars===5?'완벽해요! 별 다섯 개 ⭐' : stars>=3?'잘했어요! 👏' : stars>=1?'완성! 다음엔 조금 더 빠르게 💪' : '끝까지 해냈어요! 🌱';
+    pendingLevel=(currentLevel+1)%LEVELS.length;
+    $('nextLevelBtn').textContent=LEVELS[pendingLevel].name+' 시작 →';
+    $('resultOv').classList.add('show');
+    animateResultStars(stars);
+  }
+  function animateResultStars(n){
+    resultStarSpans.forEach(s=>s.classList.remove('on'));
+    for(let i=0;i<n;i++) setTimeout(()=>{ resultStarSpans[i].classList.add('on'); blip(523+i*96); }, 320+i*240);
+  }
+
+  function ringBell(){ const b=$('bell'); b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); ding(); }
+  function confettiBurst(){
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cs=['#e8954f','#f2a85f','#4f8fe0','#5ca860','#f1b84a','#fbf9f3'];
+    for(let i=0;i<32;i++){ const el=document.createElement('div'); el.className='confetti';
+      const sz=6+Math.random()*8; el.style.width=sz+'px'; el.style.height=sz+'px';
+      el.style.left=(Math.random()*100)+'vw'; el.style.background=cs[i%cs.length];
+      el.style.transform='rotate('+(Math.random()*360)+'deg)'; document.body.appendChild(el);
+      const fall=900+Math.random()*900, drift=(Math.random()*120-60);
+      el.animate([{transform:el.style.transform,opacity:1},
+        {transform:'translate('+drift+'px,'+(window.innerHeight+60)+'px) rotate('+(Math.random()*720)+'deg)',opacity:.9}],
+        {duration:fall,easing:'cubic-bezier(.3,.6,.5,1)'}).onfinish=()=>el.remove(); }
+  }
+
+  // ── 화면 전환 ──
+  function showStart(level){
+    pendingLevel=level; const L=LEVELS[level];
+    $('startLvName').textContent=L.name; $('startLvMeta').textContent=L.label;
+    $('startBase').textContent=L.base; $('startStep').textContent=L.step;
+    $('startBtn').textContent=L.name+' 시작';
+    $('startOv').classList.add('show');
+  }
+  function beginLevel(level){
+    ac(); currentLevel=level; problemsSolved=0;
+    $('startOv').classList.remove('show'); $('resultOv').classList.remove('show');
+    applyLevel(); renderLiveStars(5); $('timeV').textContent='0:00';
+    loadProblem(); startClock();
+  }
+  function goHome(){ stopClock(); locked=true; showStart(0); }   // 처음으로 = 레벨 1부터
+
+  // ── 이벤트 ──
+  $('startBtn').addEventListener('click',()=>beginLevel(pendingLevel));
+  $('nextLevelBtn').addEventListener('click',()=>{ $('resultOv').classList.remove('show'); beginLevel(pendingLevel); });
+  $('homeBtn').addEventListener('click',goHome);
+  $('bell').addEventListener('click',()=>{ if(locked){ ringBell(); return; }
+    if(solvedState()) onSolve(); else { boardEl.classList.remove('nudge'); void boardEl.offsetWidth; boardEl.classList.add('nudge'); ringBell(); } });
+  $('muteBtn').addEventListener('click',()=>{ muted=!muted; $('muteBtn').textContent=muted?'🔕':'🔔'; if(!muted) ac(); });
+
+  let rT; window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout(()=>{ if(tiles.length){ buildBoard(); renderTarget(); } },150); });
+
+  // ── 초기화 (시작 전 미리보기) ──
+  currentLevel=0; applyLevel();
+  { const n=tx*ty; do{target=randomState(n);}while(nonZero(target)<2); tiles=Array(n).fill(0); }
+  buildBoard(); renderTarget(); renderLiveStars(5); showStart(0);
+})();
+</script>
+</body>
+</html>
