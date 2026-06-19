@@ -25,9 +25,15 @@
     font-family:'Gowun Dodum','Pretendard',system-ui,sans-serif;color:var(--cream);
     background:radial-gradient(120% 80% at 50% -10%, #3a7e6f 0%, var(--felt) 42%, var(--felt-deep) 100%);
     min-height:100dvh;display:flex;flex-direction:column;align-items:center;
-    padding:max(12px,env(safe-area-inset-top)) 14px max(16px,env(safe-area-inset-bottom));
+    padding:max(58px,calc(env(safe-area-inset-top) + 46px)) 14px max(16px,env(safe-area-inset-bottom));
     overflow-x:hidden;position:relative;
   }
+  /* 좌상단 게임 목록 버튼 (허브 공통 규약) */
+  .home-btn{position:fixed;top:12px;left:12px;z-index:1000;font-family:'Jua',sans-serif;font-size:15px;
+    text-decoration:none;color:var(--ink);background:rgba(255,255,255,.92);border:2px solid rgba(0,0,0,.12);
+    border-radius:14px;padding:8px 14px;box-shadow:0 4px 12px rgba(0,0,0,.3);}
+  .home-btn:active{transform:translate(1px,1px);}
+  @media (max-width:430px){ .home-btn{font-size:13px;padding:6px 11px;top:8px;left:8px;} }
   body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;z-index:0;
     background-image:repeating-linear-gradient(45deg,#000 0 1px,transparent 1px 3px);}
   .wrap{width:100%;max-width:480px;position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;}
@@ -135,14 +141,17 @@
 </style>
 </head>
 <body>
+<a href="index.html" class="home-btn" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
 <div class="wrap">
   <header>
     <div class="brand">
       <h1><span class="ding">딩!</span> 패턴 퍼즐</h1>
       <span class="levelpill" id="levelPill">레벨 1</span>
+      <span class="levelpill" id="eggPill" style="background:#bfe7cf;box-shadow:0 2px 0 #6cae8a">🥚 0</span>
     </div>
     <div class="hdr-btns">
-      <button class="iconbtn" id="homeBtn" title="처음으로" aria-label="처음으로">🏠</button>
+      <button class="iconbtn" id="dexBtn" title="포켓몬 도감" aria-label="도감">📖</button>
+      <button class="iconbtn" id="homeBtn" title="처음으로 (레벨1부터)" aria-label="처음으로">↺</button>
       <button class="iconbtn" id="muteBtn" title="소리 켜기/끄기" aria-label="소리">🔔</button>
     </div>
   </header>
@@ -215,6 +224,7 @@
   </div>
 </div>
 
+<script src="hub.js"></script>
 <script>
 (function(){
   "use strict";
@@ -350,6 +360,7 @@
     const sec=Math.max(0,Math.floor((Date.now()-levelStartTime)/1000));
     const stars=starsForTime(sec,currentLevel);
     totalStars+=stars; $('starsV').textContent=totalStars; $('totalStarsV').textContent=totalStars;
+    if(window.Hub && stars>0){ Hub.addScore('pattern', stars); refreshEgg(); }   // 공용 부화점 연동
     confettiBurst();
     $('resultTitle').textContent=LEVELS[currentLevel].name+' 완료!';
     $('resultTime').textContent='총 '+fmt(sec)+' ('+sec+'초)';
@@ -402,12 +413,17 @@
     if(solvedState()) onSolve(); else { boardEl.classList.remove('nudge'); void boardEl.offsetWidth; boardEl.classList.add('nudge'); ringBell(); } });
   $('muteBtn').addEventListener('click',()=>{ muted=!muted; $('muteBtn').textContent=muted?'🔕':'🔔'; if(!muted) ac(); });
 
+  // ── 허브(부화점) 연동 ──
+  function refreshEgg(){ const e=$('eggPill'); if(e) e.textContent='🥚 '+(window.Hub?Hub.available():0); }
+  $('dexBtn').addEventListener('click',()=>{ if(window.Hub) Hub.openDex(); });
+  document.addEventListener('hubchange', refreshEgg);
+
   let rT; window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout(()=>{ if(tiles.length){ buildBoard(); renderTarget(); } },150); });
 
   // ── 초기화 (시작 전 미리보기) ──
   currentLevel=0; applyLevel();
   { const n=tx*ty; do{target=randomState(n);}while(nonZero(target)<2); tiles=Array(n).fill(0); }
-  buildBoard(); renderTarget(); renderLiveStars(5); showStart(0);
+  buildBoard(); renderTarget(); renderLiveStars(5); showStart(0); refreshEgg();
 })();
 </script>
 </body>
