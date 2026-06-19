@@ -135,6 +135,20 @@
     background:linear-gradient(180deg,var(--apricot-hi),var(--apricot-lo));border-radius:14px;padding:14px;letter-spacing:.5px;
     box-shadow:0 5px 0 #b56a26;transition:transform .08s,box-shadow .08s;}
   .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b56a26;}
+  .btn.ghost{background:#efe9da;color:#5a5247;box-shadow:0 5px 0 #cdbf9e;}
+  .btn.ghost:active{box-shadow:0 2px 0 #cdbf9e;}
+  /* 레벨 선택 */
+  .lvpick-cap{font-size:13.5px;color:#5a5247;margin:10px 0 0;}
+  .lvpick{display:flex;flex-direction:column;gap:9px;margin:10px 0 2px;}
+  .lvbtn2{border:2.5px solid var(--paper-shade);background:#fff;border-radius:14px;padding:12px 14px;cursor:pointer;
+    font-family:'Jua',sans-serif;color:#3a332b;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    box-shadow:0 3px 0 var(--paper-shade);transition:transform .08s,box-shadow .08s,border-color .12s;}
+  .lvbtn2:hover{border-color:var(--apricot);}
+  .lvbtn2:active{transform:translateY(2px);box-shadow:0 1px 0 var(--paper-shade);}
+  .lvbtn2 .lv-n{font-size:18px;}
+  .lvbtn2 .lv-m{font-size:12.5px;color:#8a8073;font-family:'Gowun Dodum',sans-serif;}
+  .btnrow2{display:flex;gap:10px;margin-top:14px;}
+  .btnrow2 .btn{flex:1;width:auto;margin-top:0;}
 
   .confetti{position:fixed;top:-20px;z-index:25;pointer-events:none;border-radius:2px;}
   @media (prefers-reduced-motion: reduce){*{animation-duration:.001s!important;transition-duration:.05s!important;}}
@@ -203,12 +217,8 @@
     <h2>딩! 패턴 퍼즐</h2>
     <p>한 레벨은 <b>문제 5개</b>!<br>시간 안에 다 풀면 별 ★5개를 받아요.</p>
     <div class="swatches"><div class="sw a"></div><div class="sw b"></div><div class="sw c"></div></div>
-    <div class="lv-info">
-      이번 도전: <b id="startLvName">레벨 1</b> · <span id="startLvMeta">4조각 · 2색</span><br>
-      기준 <b id="startBase">50</b>초, <b id="startStep">10</b>초마다 ★ −1
-    </div>
-    <p class="fine">레벨1 → 레벨2 → 레벨3 → 다시 레벨1 순서로 이어져요.</p>
-    <button class="btn" id="startBtn">레벨 1 시작</button>
+    <p class="lvpick-cap">레벨을 골라요 — 같은 레벨을 반복해도 좋아요! 🙂</p>
+    <div class="lvpick" id="lvPick"></div>
   </div>
 </div>
 
@@ -220,7 +230,10 @@
     <div class="result-time" id="resultTime">총 0:52</div>
     <p id="resultMsg">잘했어요!</p>
     <div class="total-stars">누적 별 <b id="totalStarsV">5</b>개</div>
-    <button class="btn" id="nextLevelBtn">레벨 2 시작 →</button>
+    <div class="btnrow2">
+      <button class="btn" id="againBtn">이 레벨 한 번 더</button>
+      <button class="btn ghost" id="pickBtn">레벨 고르기</button>
+    </div>
   </div>
 </div>
 
@@ -365,8 +378,6 @@
     $('resultTitle').textContent=LEVELS[currentLevel].name+' 완료!';
     $('resultTime').textContent='총 '+fmt(sec)+' ('+sec+'초)';
     $('resultMsg').textContent = stars===5?'완벽해요! 별 다섯 개 ⭐' : stars>=3?'잘했어요! 👏' : stars>=1?'완성! 다음엔 조금 더 빠르게 💪' : '끝까지 해냈어요! 🌱';
-    pendingLevel=(currentLevel+1)%LEVELS.length;
-    $('nextLevelBtn').textContent=LEVELS[pendingLevel].name+' 시작 →';
     $('resultOv').classList.add('show');
     animateResultStars(stars);
   }
@@ -390,24 +401,27 @@
   }
 
   // ── 화면 전환 ──
-  function showStart(level){
-    pendingLevel=level; const L=LEVELS[level];
-    $('startLvName').textContent=L.name; $('startLvMeta').textContent=L.label;
-    $('startBase').textContent=L.base; $('startStep').textContent=L.step;
-    $('startBtn').textContent=L.name+' 시작';
-    $('startOv').classList.add('show');
+  function renderLvPick(){
+    const box=$('lvPick'); box.innerHTML='';
+    LEVELS.forEach((L,i)=>{
+      const b=document.createElement('button'); b.className='lvbtn2';
+      b.innerHTML='<span class="lv-n">'+L.name+'</span><span class="lv-m">'+L.label+' · 기준 '+L.base+'초</span>';
+      b.addEventListener('click',()=>beginLevel(i));
+      box.appendChild(b);
+    });
   }
+  function showStart(){ renderLvPick(); $('startOv').classList.add('show'); }
   function beginLevel(level){
     ac(); currentLevel=level; problemsSolved=0;
     $('startOv').classList.remove('show'); $('resultOv').classList.remove('show');
     applyLevel(); renderLiveStars(5); $('timeV').textContent='0:00';
     loadProblem(); startClock();
   }
-  function goHome(){ stopClock(); locked=true; showStart(0); }   // 처음으로 = 레벨 1부터
+  function goHome(){ stopClock(); locked=true; showStart(); }   // 처음으로 = 레벨 선택 화면
 
   // ── 이벤트 ──
-  $('startBtn').addEventListener('click',()=>beginLevel(pendingLevel));
-  $('nextLevelBtn').addEventListener('click',()=>{ $('resultOv').classList.remove('show'); beginLevel(pendingLevel); });
+  $('againBtn').addEventListener('click',()=>{ $('resultOv').classList.remove('show'); beginLevel(currentLevel); });   // 같은 레벨 반복
+  $('pickBtn').addEventListener('click',()=>{ $('resultOv').classList.remove('show'); showStart(); });                 // 레벨 다시 고르기
   $('homeBtn').addEventListener('click',goHome);
   $('bell').addEventListener('click',()=>{ if(locked){ ringBell(); return; }
     if(solvedState()) onSolve(); else { boardEl.classList.remove('nudge'); void boardEl.offsetWidth; boardEl.classList.add('nudge'); ringBell(); } });
@@ -423,7 +437,7 @@
   // ── 초기화 (시작 전 미리보기) ──
   currentLevel=0; applyLevel();
   { const n=tx*ty; do{target=randomState(n);}while(nonZero(target)<2); tiles=Array(n).fill(0); }
-  buildBoard(); renderTarget(); renderLiveStars(5); showStart(0); refreshEgg();
+  buildBoard(); renderTarget(); renderLiveStars(5); showStart(); refreshEgg();
 })();
 </script>
 </body>
