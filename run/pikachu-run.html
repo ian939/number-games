@@ -102,7 +102,7 @@
               <button class="chip selected" data-val="normal">보통<small>두 자리 ± 한 자리</small></button>
               <button class="chip" data-val="hard">어려움<small>두 자리 ± · 곱셈</small></button>
             </div>
-            <p class="rules">⏱ <b>15초</b>로 시작! <b>맞는 식</b>을 먹으면 <b>+5초</b>, <b>틀린 식</b>은 <b>−10초</b><br>
+            <p class="rules">⏱ <b>30초</b>로 시작! <b>맞는 식 사과</b>를 먹으면 <b>+5초</b>, <b>틀린 식</b>은 <b>−10초</b><br>
               ⬆️ <b>위쪽 식</b>은 점프(탭)해서 · ⬇️ <b>아래쪽 식</b>은 가만히 달려서 먹어요<br>
               ↕️ 탭을 <b>두 번</b>하면 <b>이단 점프</b> — 아래 틀린 식을 폴짝 뛰어 피해요!<br>
               ⭐ 멀리 달릴수록 별이 많아요! (별 = <b>거리 ÷ 10</b>)</p>
@@ -146,13 +146,13 @@
   const GROUND_Y = 380;     // 피카츄 발 y (바닥에 더 가깝게)
   const PIKA_X   = 130;     // 피카츄 x(고정)
   const PIKA_H   = 86;      // 피카츄 높이
-  const TOP_Y    = 165;     // 위쪽 레인 수식 높이(점프해서 먹기)
-  const BOT_Y    = 330;     // 아래쪽 레인 수식 높이(달리면서 먹기)
-  const ITEM_H   = 46;
+  const TOP_Y    = 160;     // 위쪽 레인 사과 높이(점프해서 먹기)
+  const BOT_Y    = 320;     // 아래쪽 레인 사과 높이(달리면서 먹기)
+  const APPLE_W  = 92, APPLE_H = 100;   // 사과 크기(세로로 길어 가로폭이 좁다)
   const GRAVITY  = 1300, JUMP_V = 710;  // 위 레인까지 닿는 점프
   const MAX_JUMPS = 2;      // 이단 점프(공중에서 한 번 더) — 아래 틀린 식 피하기
   const PX_PER_M = 50;      // 화면 픽셀 → 거리(m) 환산 (별 = 거리 ÷ 10)
-  const START_TIME = 15;    // 시작 시간(초)
+  const START_TIME = 30;    // 시작 시간(초)
 
   // ----- assets -----
   const bgImg = new Image();   bgImg.src = 'forest.png';
@@ -210,12 +210,12 @@
     }
     let isTrue=Math.random()<0.5;
     let shown=isTrue?ans:wrongAnswer(ans); isTrue=(shown===ans);
-    return { text:a+sym+b+'='+shown, isTrue };
+    return { a, b, sym, shown, isTrue };
   }
   function spawnItem(x){
     const p=makeProblem();
     const lane = Math.random()<0.5 ? 'top' : 'bottom';   // 위/아래 랜덤
-    items.push({ x:x, y: lane==='top'?TOP_Y:BOT_Y, lane, text:p.text, isTrue:p.isTrue, resolved:false, w:0 });
+    items.push({ x:x, y: lane==='top'?TOP_Y:BOT_Y, lane, a:p.a, b:p.b, sym:p.sym, shown:p.shown, isTrue:p.isTrue, resolved:false, w:APPLE_W });
   }
 
   function resetGame(){
@@ -310,13 +310,44 @@
       ctx.drawImage(pikaImg, col*PFW, row*PFH, PFW, PFH, PIKA_X-PDRAW_W/2, top, PDRAW_W, PIKA_H);
     } else { ctx.fillStyle='#ffcb05'; ctx.beginPath(); ctx.arc(PIKA_X, pika.y-28, 28, 0, Math.PI*2); ctx.fill(); }
   }
+  function drawApple(cx, cy, w, h){
+    const rx=w/2, ry=h/2;
+    // 그림자
+    ctx.fillStyle='rgba(0,0,0,.12)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+ry*0.96, rx*0.78, ry*0.14, 0, 0, Math.PI*2); ctx.fill();
+    // 줄기
+    ctx.strokeStyle='#7a4a22'; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(cx, cy-ry*0.72); ctx.lineTo(cx+2, cy-ry*1.02); ctx.stroke();
+    // 잎
+    ctx.fillStyle='#5cb85c'; ctx.save(); ctx.translate(cx+12, cy-ry*0.92); ctx.rotate(-0.5);
+    ctx.beginPath(); ctx.ellipse(0,0,12,6,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    // 몸통(위가 살짝 들어간 사과형)
+    const g=ctx.createLinearGradient(cx, cy-ry, cx, cy+ry);
+    g.addColorStop(0,'#ff6b6b'); g.addColorStop(1,'#d62828');
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy-ry*0.55);
+    ctx.bezierCurveTo(cx-rx*0.38, cy-ry*1.02, cx-rx*1.02, cy-ry*0.65, cx-rx*0.96, cy);
+    ctx.bezierCurveTo(cx-rx*0.92, cy+ry*0.72, cx-rx*0.5, cy+ry*0.98, cx, cy+ry*0.94);
+    ctx.bezierCurveTo(cx+rx*0.5, cy+ry*0.98, cx+rx*0.92, cy+ry*0.72, cx+rx*0.96, cy);
+    ctx.bezierCurveTo(cx+rx*1.02, cy-ry*0.65, cx+rx*0.38, cy-ry*1.02, cx, cy-ry*0.55);
+    ctx.closePath(); ctx.fill();
+    // 하이라이트
+    ctx.fillStyle='rgba(255,255,255,.22)';
+    ctx.beginPath(); ctx.ellipse(cx-rx*0.38, cy-ry*0.3, rx*0.2, ry*0.28, -0.4, 0, Math.PI*2); ctx.fill();
+  }
   function drawItem(it){
-    ctx.font='800 26px Jua, "Malgun Gothic", sans-serif';
-    const w=ctx.measureText(it.text).width+30; it.w=w;
-    const x=it.x-w/2, y=it.y-ITEM_H/2;
-    rrect(x,y,w,ITEM_H,14); ctx.fillStyle='rgba(28,30,40,.92)'; ctx.fill();
-    ctx.lineWidth=3; ctx.strokeStyle='#fff'; rrect(x,y,w,ITEM_H,14); ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(it.text, it.x, it.y+2);
+    drawApple(it.x, it.y, APPLE_W, APPLE_H);
+    // 사과 안에 세로식(가로폭이 좁아 피하거나 먹기 쉬움)
+    const cy=it.y, rightX=it.x+20, opX=it.x-26;
+    ctx.fillStyle='#fff'; ctx.textBaseline='middle';
+    ctx.font='800 20px Jua, "Malgun Gothic", sans-serif';
+    ctx.textAlign='right'; ctx.fillText(String(it.a), rightX, cy-28);
+    ctx.fillText(String(it.b), rightX, cy-6);
+    ctx.textAlign='left';  ctx.fillText(it.sym, opX, cy-6);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(it.x-28, cy+7); ctx.lineTo(rightX, cy+7); ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(String(it.shown), rightX, cy+27);
   }
   function drawParticles(){ for(const p of parts){ ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.font=(p.col?'800 ':'700 ')+p.size+'px Jua, sans-serif'; ctx.fillStyle=p.col||'#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.ch,p.x,p.y); } ctx.globalAlpha=1; }
   function render(){
@@ -366,7 +397,7 @@
       if(it.resolved) continue;
       const dxo=Math.abs(it.x-PIKA_X);
       if(dxo < (it.w/2 + PDRAW_W*0.42)){
-        const itTop=it.y-ITEM_H/2, itBot=it.y+ITEM_H/2;
+        const itTop=it.y-APPLE_H/2, itBot=it.y+APPLE_H/2;
         if(pikaTop<itBot && pikaBot>itTop) eatItem(it);
       }
     }
