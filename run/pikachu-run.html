@@ -14,6 +14,7 @@
     background:linear-gradient(160deg,#bfe9b0 0%,#7fc98e 55%,#4f9d6b 100%);
     background-attachment:fixed; min-height:100vh;
     display:flex; align-items:center; justify-content:center; padding:14px; user-select:none;
+    touch-action:manipulation;   /* 더블탭 줌 제거(이단 점프=빠른 두 번 탭 보호) */
   }
 
   /* 좌상단 게임 목록 버튼 (허브 공통 규약) */
@@ -101,7 +102,7 @@
               <button class="chip selected" data-val="normal">보통<small>두 자리 ± 한 자리</small></button>
               <button class="chip" data-val="hard">어려움<small>두 자리 ± · 곱셈</small></button>
             </div>
-            <p class="rules">⏱ <b>30초</b>로 시작! <b>맞는 식</b>을 먹으면 <b>+10초</b>, <b>틀린 식</b>은 <b>−10초</b><br>
+            <p class="rules">⏱ <b>15초</b>로 시작! <b>맞는 식</b>을 먹으면 <b>+5초</b>, <b>틀린 식</b>은 <b>−10초</b><br>
               ⬆️ <b>위쪽 식</b>은 점프(탭)해서 · ⬇️ <b>아래쪽 식</b>은 가만히 달려서 먹어요<br>
               ↕️ 탭을 <b>두 번</b>하면 <b>이단 점프</b> — 아래 틀린 식을 폴짝 뛰어 피해요!<br>
               ⭐ 멀리 달릴수록 별이 많아요! (별 = <b>거리 ÷ 10</b>)</p>
@@ -151,7 +152,7 @@
   const GRAVITY  = 1300, JUMP_V = 710;  // 위 레인까지 닿는 점프
   const MAX_JUMPS = 2;      // 이단 점프(공중에서 한 번 더) — 아래 틀린 식 피하기
   const PX_PER_M = 50;      // 화면 픽셀 → 거리(m) 환산 (별 = 거리 ÷ 10)
-  const START_TIME = 30;    // 시작 시간(초)
+  const START_TIME = 15;    // 시작 시간(초)
 
   // ----- assets -----
   const bgImg = new Image();   bgImg.src = 'forest.png';
@@ -284,6 +285,14 @@
       group.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected')); btn.classList.add('selected'); difficulty=btn.dataset.val; });
   });
 
+  // ----- 브라우저 확대/축소 제스처 차단 -----
+  // 이단 점프(빠른 두 번 탭/클릭)가 더블탭 줌으로 오작동하면 화면이 깨진다. 모든 줌 제스처를 막는다.
+  ['gesturestart','gesturechange','gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
+  document.addEventListener('dblclick', e => e.preventDefault());
+  document.addEventListener('wheel', e => { if(e.ctrlKey) e.preventDefault(); }, { passive:false });
+  document.addEventListener('touchmove', e => { if(e.touches.length>1) e.preventDefault(); }, { passive:false });
+  window.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && ['+','-','='].includes(e.key)) e.preventDefault(); });
+
   // ----- draw -----
   function rrect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
   function drawBackground(){
@@ -323,7 +332,7 @@
   function eatItem(it){
     it.resolved=true;
     if(it.isTrue){
-      timeLeft+=10; updateTime(); popParticles(it.x,it.y,'⚡'); popLabel(it.x,it.y,'+10초','#1f8a4c');
+      timeLeft+=5; updateTime(); popParticles(it.x,it.y,'⚡'); popLabel(it.x,it.y,'+5초','#1f8a4c');
     } else {
       timeLeft-=10; updateTime(); hurtFlash=1; popParticles(it.x,it.y,'💥'); popLabel(it.x,it.y,'−10초','#e23');
       if(timeLeft<=0) endGame();
