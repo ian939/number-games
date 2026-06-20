@@ -105,7 +105,7 @@
             <p class="rules">⏱ <b>30초</b>로 시작! <b>맞는 식 사과</b>를 먹으면 <b>+5초</b>, <b>틀린 식</b>은 <b>−10초</b><br>
               ⬆️ <b>위쪽 식</b>은 점프(탭)해서 · ⬇️ <b>아래쪽 식</b>은 가만히 달려서 먹어요<br>
               ↕️ 탭을 <b>두 번</b>하면 <b>이단 점프</b> — 아래 틀린 식을 폴짝 뛰어 피해요!<br>
-              ⭐ 멀리 달릴수록 별이 많아요! (별 = <b>거리 ÷ 10</b>)</p>
+              ⭐ 멀리 달릴수록 별이 많아요! (별 = <b>거리 ÷ 20</b>)</p>
           </div>
           <div class="btnrow"><button class="playbtn" id="playBtn">시작하기</button></div>
         </div>
@@ -373,7 +373,7 @@
     if(state==='over') return;
     state='over';
     const meters=Math.floor(distance/PX_PER_M);
-    const reward=Math.floor(meters/10);            // 별 보상 = 거리 ÷ 10
+    const reward=Math.floor(meters/20);            // 별 보상 = 거리 ÷ 20
     if(meters>bestDist){ bestDist=meters; localStorage.setItem('pikachu_run_best',String(bestDist)); }
     if(reward>0 && window.Hub) Hub.addScore('pikarun', reward);
     overScore.textContent='🏃 '+meters+'m · ⭐ 별 +'+reward+' · 최고 '+bestDist+'m';
