@@ -182,6 +182,15 @@
   @keyframes nodePulse { 0%,100% { box-shadow: 0 0 0 3px rgba(255,210,63,.35), 0 0 14px rgba(255,210,63,.6); } 50% { box-shadow: 0 0 0 8px rgba(255,210,63,.16), 0 0 28px rgba(255,210,63,.95); } }
   @keyframes nodeShake { 0%,100% { transform: translate(-50%,-50%); } 25% { transform: translate(-58%,-50%); } 75% { transform: translate(-42%,-50%); } }
   .node.shake { animation: nodeShake .3s ease; }
+  /* 현재 단계 옆에서 달리는 피카츄 */
+  .pika-marker { position: absolute; transform: translate(-50%, -50%); z-index: 6; pointer-events: none; }
+  .pika-marker .pika-img { width: 50px; height: 56px; background: url('../run/pikachu.png') no-repeat; background-size: 200px 112px;
+    animation: pikaRun .5s steps(4) infinite, pikaBob .9s ease-in-out infinite; filter: drop-shadow(0 3px 3px rgba(0,0,0,.45)); }
+  .pika-marker .label { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+    font-family: 'Jua', sans-serif; font-size: 11px; color: #3a2410; background: #FFD23F; padding: 1px 8px; border-radius: 999px; box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  @keyframes pikaRun { from { background-position-x: 0; } to { background-position-x: -200px; } }
+  @keyframes pikaBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @media (prefers-reduced-motion: reduce){ .pika-marker .pika-img { animation: pikaBob 1.2s ease-in-out infinite; } }
   .btn.help-glow { background: #FFF4D6; color: #C77700; animation: helpGlow 1s ease-in-out infinite; }
   @keyframes helpGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(255,180,0,.55); } 50% { box-shadow: 0 0 0 7px rgba(255,180,0,0); } }
 
@@ -1016,7 +1025,7 @@ function setUnlocked(n) { try { localStorage.setItem(STAGE_KEY, String(n)); } ca
 
 function buildMap() {
   const wrap = document.getElementById('map-wrap');
-  wrap.querySelectorAll('.node').forEach(n => n.remove());
+  wrap.querySelectorAll('.node, .pika-marker').forEach(n => n.remove());
   const unlocked = getUnlocked();
   for (let n = 1; n <= 40; n++) {
     const c = STAGE_COORDS[n]; if (!c) continue;
@@ -1030,6 +1039,16 @@ function buildMap() {
       b.addEventListener('click', () => startStage(n));
     }
     wrap.appendChild(b);
+  }
+  // 현재 풀 수 있는 단계(현재 노드) 옆에 달리는 피카츄
+  const curC = STAGE_COORDS[Math.min(40, unlocked)];
+  if (curC) {
+    const pm = document.createElement('div'); pm.className = 'pika-marker';
+    const rightSide = curC[0] <= 0.6;   // 노드가 왼/가운데면 오른쪽에, 오른쪽이면 왼쪽에
+    pm.style.left = 'calc(' + (curC[0] * 100) + '% ' + (rightSide ? '+' : '-') + ' 36px)';
+    pm.style.top = (curC[1] * 100) + '%';
+    pm.innerHTML = '<div class="label">지금!</div><div class="pika-img"></div>';
+    wrap.appendChild(pm);
   }
   document.getElementById('map-prog').textContent = (unlocked - 1) + ' / 40 완료';
 }
