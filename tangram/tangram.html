@@ -691,7 +691,7 @@ function piecesFitsSlot(p, s) {
   for (const a of s.world) {                                // 슬롯 각 꼭짓점에 가까운 조각 꼭짓점 존재?
     let found = -1;
     for (let i = 0; i < pv.length; i++) {
-      if (!used[i] && Math.hypot(pv[i].x - a.x, pv[i].y - a.y) < (hardMode ? 13 : VERT_TOL)) { found = i; break; }
+      if (!used[i] && Math.hypot(pv[i].x - a.x, pv[i].y - a.y) < VERT_TOL) { found = i; break; }
     }
     if (found < 0) return false;
     used[found] = true;
@@ -704,7 +704,7 @@ function trySnap(p) {
   let best = null, bestd = 1e9;
   for (const s of slots) {
     if (s.filledBy && s.filledBy !== p) continue;            // 다른 조각이 이미 채움
-    if (Math.hypot(s.x - p.x, s.y - p.y) > (hardMode ? POS_TOL * 0.8 : POS_TOL * 2)) continue;
+    if (Math.hypot(s.x - p.x, s.y - p.y) > (hardMode ? POS_TOL * 1.5 : POS_TOL * 2)) continue;
     if (!piecesFitsSlot(p, s)) continue;
     const cd = Math.hypot(s.x - p.x, s.y - p.y);
     if (cd < bestd) { bestd = cd; best = s; }
