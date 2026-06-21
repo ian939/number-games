@@ -535,7 +535,7 @@ let popFlash = null;
 
 // 채우기 모드 상태
 let fillMode = false, fillImg = null, fillRect = null;
-let silMask = null, silTotal = 0, silBlack = null, fillSolved = false;
+let silMask = null, silTotal = 0, silBlack = null, fillSolved = false, slotSolved = false;
 const off = document.createElement('canvas'); off.width = CANVAS_W; off.height = CANVAS_H;
 const offc = off.getContext('2d', { willReadFrequently: true });
 const tmp = document.createElement('canvas'); const tmpc = tmp.getContext('2d', { willReadFrequently: true });
@@ -571,9 +571,9 @@ function loadPuzzle(index) {
   const d = pz.diff || DIFF[pz.name] || 'mid';
   puzzleBadgeEl.textContent = DIFF_LABEL[d];
   puzzleBadgeEl.className = 'badge ' + d;
-  fillSolved = false;
+  fillSolved = false; slotSolved = false;
   if (pz.mode === 'fill') { setupFill(pz); }
-  else { fillMode = false; fillImg = null; buildSlots(pz); }
+  else { fillMode = false; fillImg = null; buildSlots(pz); buildSlotMask(); }
   pieces = TRAY.map(t => { const p = new Piece(t.id); p.x = t.x; p.y = t.y; p.rotation = 0; return p; });
   selected = null; dragging = null; hideRotateBtn();
   winEl.style.display = 'none';
@@ -732,8 +732,52 @@ function trySnapFreeplay(p) {
   if (best) { p.x += best.dx; p.y += best.dy; }
 }
 function checkWin() {
+  if (!slots.length || slotSolved) return;
+  if (slots.every(s => s.filledBy)) { slotSolved = true; setTimeout(() => { stageWin(); fillWinCard(); winEl.style.display = 'flex'; }, 250); }
+}
+
+// 슬롯 폴리곤들의 합집합 = 목표 실루엣 마스크 (fill 모드와 동일 기법)
+function buildSlotMask() {
+  silMask = null; silTotal = 0;
   if (!slots.length) return;
-  if (slots.every(s => s.filledBy)) setTimeout(() => { stageWin(); fillWinCard(); winEl.style.display = 'flex'; }, 250);
+  offc.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  offc.fillStyle = '#000';
+  slots.forEach(s => {
+    offc.beginPath();
+    s.world.forEach((v, i) => i === 0 ? offc.moveTo(v.x, v.y) : offc.lineTo(v.x, v.y));
+    offc.closePath(); offc.fill();
+  });
+  const d = offc.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
+  silMask = new Uint8Array(CANVAS_W * CANVAS_H);
+  for (let p = 0, i = 3; p < silMask.length; p++, i += 4) { if (d[i] > 128) { silMask[p] = 1; silTotal++; } }
+}
+
+// 보조 정답 판정: 7조각이 목표 실루엣을 충분히 덮고(가려진 비율↑) 밖으로 거의 안 삐져나오면 정답 — 다른 분해/배치도 인정
+const COVER_THRESH = 0.94, OVERFLOW_THRESH = 0.06;
+function checkWinCoverage() {
+  if (fillMode || !silMask || !silTotal || slotSolved) return;
+  offc.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  offc.fillStyle = '#000';
+  let inPlay = 0;
+  pieces.forEach(p => {
+    if (p.x >= SPLIT) return;                 // 트레이(우측) 조각 제외
+    inPlay++;
+    const vs = p.worldVerts();
+    offc.beginPath();
+    vs.forEach((v, i) => i === 0 ? offc.moveTo(v.x, v.y) : offc.lineTo(v.x, v.y));
+    offc.closePath(); offc.fill();
+  });
+  if (inPlay < pieces.length) return;          // 7조각 모두 플레이 영역에 있어야
+  const pd = offc.getImageData(0, 0, CANVAS_W, CANVAS_H).data;
+  let covered = 0, overflow = 0;
+  for (let p = 0, i = 3; p < silMask.length; p++, i += 4) {
+    const on = pd[i] > 128;
+    if (silMask[p]) { if (on) covered++; } else if (on) overflow++;
+  }
+  if (covered / silTotal >= COVER_THRESH && overflow / silTotal <= OVERFLOW_THRESH) {
+    slotSolved = true;
+    setTimeout(() => { stageWin(); fillWinCard(); winEl.style.display = 'flex'; }, 250);
+  }
 }
 
 // ===== 입력 (Pointer Events) =====
@@ -768,7 +812,7 @@ function endDrag(e) {
   if (e) e.preventDefault();
   const p = dragging; dragging = null;
   trySnap(p);
-  if (fillMode) checkWinFill();
+  if (fillMode) checkWinFill(); else checkWinCoverage();
   showRotateBtn();
 }
 cv.addEventListener('pointerup', endDrag);
@@ -779,7 +823,7 @@ rotateBtn.addEventListener('pointerdown', e => {
   if (!selected || selected.anim) return;
   const p = selected;                 // 애니메이션 완료 시점에 selected가 바뀌어도 이 조각을 스냅
   p.locked = false;
-  p.startAnim(p.x, p.y, p.rotation + Math.PI / 4, 160, () => trySnap(p));
+  p.startAnim(p.x, p.y, p.rotation + Math.PI / 4, 160, () => { trySnap(p); if (!fillMode) checkWinCoverage(); });
 });
 
 // 뒤집기 버튼 (평행사변형 전용)
@@ -791,7 +835,7 @@ flipBtn.addEventListener('pointerdown', e => {
   if (selected.slot) { selected.slot.filledBy = null; selected.slot = null; }
   selected.flipped = !selected.flipped;
   trySnap(selected);
-  if (fillMode) checkWinFill();
+  if (fillMode) checkWinFill(); else checkWinCoverage();
 });
 
 function showRotateBtn() {

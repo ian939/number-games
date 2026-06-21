@@ -17,7 +17,8 @@
   "use strict";
 
   /* ── 포켓몬 데이터 ── */
-  const POKEMON_KR={1:'이상해씨',2:'이상해풀',3:'이상해꽃',4:'파이리',5:'리자드',6:'리자몽',7:'꼬부기',8:'어니부기',9:'거북왕',10:'캐터피',11:'단데기',12:'버터플',13:'뿔충이',14:'딱충이',15:'독침붕',16:'구구',17:'피죤',18:'피죤투',19:'꼬라타',20:'래트케이트',21:'깨비참',22:'깨비드릴조',23:'아보',24:'아보크',25:'피카츄',26:'라이츄',27:'모래두지',28:'고지',29:'니드런♀',30:'니드리나',31:'니드퀸',32:'니드런♂',33:'니드리노',34:'니드킹',35:'삐삐',36:'픽시',37:'식스테일',38:'나인테일',39:'푸린',40:'푸크린',41:'주뱃',42:'골박쥐',43:'뚜벅초',44:'냄새꼴',45:'라플레시아',46:'파라스',47:'파라섹트',48:'콘팡',49:'도나리',50:'디그다',51:'닥트리오',52:'나옹',53:'페르시온',54:'고라파덕',55:'골덕',56:'망키',57:'성원숭',58:'가디',59:'아캔',60:'발챙이',61:'슈륙챙이',62:'강챙이',63:'케이시',64:'윤겔라',65:'후딘',66:'알통몬',67:'근육몬',68:'괴력몬',69:'모다피',70:'우츠동',71:'우츠보트',72:'왕눈해',73:'독파리',74:'꼬마돌',75:'중딩돌',76:'딱구리',77:'포니타',78:'날쌩마',79:'야돈',80:'야도란',81:'코일',82:'레어코일',83:'파오리',84:'두두',85:'두두트리오',86:'쥬쥬',87:'쥬레곤',88:'질퍽이',89:'질뻐기',90:'셀러',91:'파르셀',92:'겟핸보',93:'헨가',94:'팬텀',95:'롤러',96:'슬리프',97:'슬리퍼',98:'크랩',99:'킹크랩',100:'찌리리공',101:'붐볼',102:'아라리',103:'나시',104:'탕구리',105:'텅구리',106:'시라소몬',107:'홍수몬',108:'내루미',109:'또가스',110:'또도가스',111:'뿔카노',112:'코뿌리',113:'럭키',114:'덩쿠리',115:'캥카',116:'쏙독어',117:'씨드라',118:'콘치',119:'왕콘치',120:'별가사리',121:'아쿠스타',122:'마임맨',123:'스라크',124:'루주라',125:'에레브',126:'마그마',127:'쁘사이저',128:'켄타로스',129:'잉어킹',130:'갸라도스',131:'라프라스',132:'메타몽',133:'이브이',134:'샤워스',135:'쥬피썬더',136:'부스터',137:'폴리곤',138:'암나이트',139:'암스타',140:'투구',141:'투구푸스',142:'프테라',143:'잠만보',144:'프리져',145:'썬더',146:'파이어',147:'미뇽',148:'신뇽',149:'망나뇽',150:'뮤츠',151:'뮤'};
+  const POKEMON_KR={1:'이상해씨',2:'이상해풀',3:'이상해꽃',4:'파이리',5:'리자드',6:'리자몽',7:'꼬부기',8:'어니부기',9:'거북왕',10:'캐터피',11:'단데기',12:'버터플',13:'뿔충이',14:'딱충이',15:'독침붕',16:'구구',17:'피죤',18:'피죤투',19:'꼬라타',20:'래트케이트',21:'깨비참',22:'깨비드릴조',23:'아보',24:'아보크',25:'피카츄',26:'라이츄',27:'모래두지',28:'고지',29:'니드런♀',30:'니드리나',31:'니드퀸',32:'니드런♂',33:'니드리노',34:'니드킹',35:'삐삐',36:'픽시',37:'식스테일',38:'나인테일',39:'푸린',40:'푸크린',41:'주뱃',42:'골박쥐',43:'뚜벅초',44:'냄새꼴',45:'라플레시아',46:'파라스',47:'파라섹트',48:'콘팡',49:'도나리',50:'디그다',51:'닥트리오',52:'나옹',53:'페르시온',54:'고라파덕',55:'골덕',56:'망키',57:'성원숭',58:'가디',59:'아캔',60:'발챙이',61:'슈륙챙이',62:'강챙이',63:'케이시',64:'윤겔라',65:'후딘',66:'알통몬',67:'근육몬',68:'괴력몬',69:'모다피',70:'우츠동',71:'우츠보트',72:'왕눈해',73:'독파리',74:'꼬마돌',75:'중딩돌',76:'딱구리',77:'포니타',78:'날쌩마',79:'야돈',80:'야도란',81:'코일',82:'레어코일',83:'파오리',84:'두두',85:'두두트리오',86:'쥬쥬',87:'쥬레곤',88:'질퍽이',89:'질뻐기',90:'셀러',91:'파르셀',92:'겟핸보',93:'헨가',94:'팬텀',95:'롤러',96:'슬리프',97:'슬리퍼',98:'크랩',99:'킹크랩',100:'찌리리공',101:'붐볼',102:'아라리',103:'나시',104:'탕구리',105:'텅구리',106:'시라소몬',107:'홍수몬',108:'내루미',109:'또가스',110:'또도가스',111:'뿔카노',112:'코뿌리',113:'럭키',114:'덩쿠리',115:'캥카',116:'쏙독어',117:'씨드라',118:'콘치',119:'왕콘치',120:'별가사리',121:'아쿠스타',122:'마임맨',123:'스라크',124:'루주라',125:'에레브',126:'마그마',127:'쁘사이저',128:'켄타로스',129:'잉어킹',130:'갸라도스',131:'라프라스',132:'메타몽',133:'이브이',134:'샤워스',135:'쥬피썬더',136:'부스터',137:'폴리곤',138:'암나이트',139:'암스타',140:'투구',141:'투구푸스',142:'프테라',143:'잠만보',144:'프리져',145:'썬더',146:'파이어',147:'미뇽',148:'신뇽',149:'망나뇽',150:'뮤츠',151:'뮤',
+    152:'치코리타',153:'베이리프',154:'메가니움',155:'브케인',156:'마그케인',157:'블레이범',158:'리아코',159:'엘리게이',160:'장크로다일',161:'꼬리선',162:'다꼬리',163:'부우부',164:'야부엉',165:'레디바',166:'레디안',167:'페이검',168:'아리아도스',169:'크로뱃',170:'초라기',171:'랜턴',172:'피츄',173:'삐',174:'푸푸린',175:'토게피',176:'토게틱',177:'네이티',178:'네이티오',179:'메리프',180:'보송송',181:'전룡',182:'아르코',183:'마릴',184:'마릴리',185:'꼬지모',186:'왕구리',187:'통통코',188:'두코',189:'솜솜코',190:'에이팜',191:'해너츠',192:'해루미',193:'왕자리',194:'우파',195:'누오',196:'에브이',197:'블래키',198:'니로우',199:'야도킹',200:'무우마',201:'안농',202:'마자용',203:'키링키',204:'피콘',205:'쏘콘',206:'노고치',207:'글라이거',208:'강철톤',209:'블루',210:'그랑블루',211:'침바루',212:'핫삼',213:'단단지',214:'헤라크로스',215:'포푸니',216:'깜지곰',217:'링곰',218:'마그마그',219:'마그카르고',220:'꾸꾸리',221:'메꾸리',222:'코산호',223:'총어',224:'대포무노',225:'딜리버드',226:'만타인',227:'무장조',228:'델빌',229:'헬가',230:'킹드라',231:'코코리',232:'코리갑',233:'폴리곤2',234:'노라키',235:'루브도',236:'배루키',237:'카포에라',238:'뽀뽀라',239:'에레키드',240:'마그비',241:'밀탱크',242:'해피너스',243:'라이코',244:'앤테이',245:'스이쿤',246:'애버라스',247:'데기라스',248:'마기라스',249:'루기아',250:'칠색조',251:'세레비'};
 
   const TYPE_KR={
     normal:{label:'노말',color:'#9FA19F'}, fire:{label:'불꽃',color:'#E62829'},
@@ -32,23 +33,30 @@
   };
 
   const RARITY=id=>{
-    if([150,151,144,145,146].includes(id))return{label:'전설',cls:'legend'};
-    if([130,131,142,143,147,148,149].includes(id))return{label:'희귀',cls:'epic'};
+    if([150,151,144,145,146, 243,244,245,249,250,251].includes(id))return{label:'전설',cls:'legend'};
+    if([130,131,142,143,147,148,149, 230,248,233,214,212].includes(id))return{label:'희귀',cls:'epic'};
     if(id%7===0||id%11===0)return{label:'레어',cls:'rare'};
     return{label:'일반',cls:'common'};
   };
   const SPRITE=id=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 
+  /* 세대 메타데이터: 도감 범위(lo~hi) + 희귀도/부화 풀 */
+  const GENS={
+    1:{lo:1,   hi:151, legend:[144,145,146,150,151],      epic:[130,131,142,143,147,148,149], common:[1,130]},
+    2:{lo:152, hi:251, legend:[243,244,245,249,250,251],   epic:[230,248,233,214,212],          common:[152,242]}
+  };
+
   const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-  function pickPokemon(){
+  function pickPokemon(gen){
+    const g=GENS[gen]||GENS[state.gen]||GENS[1];
     const roll=Math.random();
-    if(roll<0.01)return[144,145,146,150,151][rnd(0,4)];
-    if(roll<0.05)return[130,131,142,143,147,148,149][rnd(0,6)];
+    if(roll<0.01)return g.legend[rnd(0,g.legend.length-1)];
+    if(roll<0.05)return g.epic[rnd(0,g.epic.length-1)];
     if(roll<0.18){
-      const pool=Object.keys(POKEMON_KR).map(Number).filter(id=>id%7===0||id%11===0);
-      return pool[rnd(0,pool.length-1)];
+      const pool=Object.keys(POKEMON_KR).map(Number).filter(id=>id>=g.lo&&id<=g.hi&&(id%7===0||id%11===0));
+      if(pool.length) return pool[rnd(0,pool.length-1)];
     }
-    return rnd(1,130);
+    return rnd(g.common[0],g.common[1]);
   }
 
   /* ── 타입·설명 캐시 (PokeAPI) ── */
@@ -79,7 +87,7 @@
   /* ── 공유 점수: 게임별 누적 점수 · 부화에 쓴 점수 · 도감 ── */
   const STATE_KEY='numbersHub_v2';
   const HATCH_COST=10; // 부화 1마리 = 10점
-  let state={scores:{}, spent:0, caught:{}, _v:2};
+  let state={scores:{}, spent:0, caught:{}, gen:1, _v:2};
 
   function load(){
     let raw=null;
@@ -88,6 +96,7 @@
       state.scores=raw.scores||{};
       state.spent=raw.spent||0;
       state.caught=raw.caught||{};
+      state.gen=raw.gen||1;
       state._v=2;
       return;
     }
@@ -131,12 +140,24 @@
   // 구버전 호환
   function addStars(gameId, n){ return addScore(gameId, n); }
 
-  /* 점수 10점으로 부화 → 포켓몬 id 반환(부족하면 null). 같은 포켓몬은 최대 3마리까지만 카운트 */
+  /* 점수 10점으로 부화 → 포켓몬 id 반환. 같은 포켓몬은 최대 3마리까지만.
+     3마리(MAX_DUP)를 채운 포켓몬은 부화 풀에서 제외해 더 이상 중복으로 안 나온다.
+     부족하면 null, 모든 포켓몬을 다 모았으면 'done' 반환(점수 차감 안 함). */
   const MAX_DUP=3;
+  function isMaxed(id){ return (state.caught[id]||0)>=MAX_DUP; }
+  // 선택 세대(gen)에서 아직 3마리를 못 채운 포켓몬만 대상으로, 희귀도 분포는 유지하며 뽑기
+  function pickHatch(gen){
+    const g=GENS[gen]||GENS[1];
+    const remaining=[]; for(let id=g.lo;id<=g.hi;id++){ if(!isMaxed(id)) remaining.push(id); }
+    if(!remaining.length) return null;                 // 이 세대 전부 3마리 → 더 뽑을 것 없음
+    for(let i=0;i<80;i++){ const id=pickPokemon(gen); if(!isMaxed(id)) return id; }
+    return remaining[rnd(0,remaining.length-1)];        // 보강: 남은 것 중 하나
+  }
   function hatch(){
     if(available()<HATCH_COST) return null;
+    const id=pickHatch(state.gen);
+    if(id==null) return 'done';      // 이 세대 수집 완료 — 점수 보존(차감 안 함)
     state.spent+=HATCH_COST;
-    const id=pickPokemon();
     state.caught[id]=Math.min(MAX_DUP,(state.caught[id]||0)+1);
     save();
     return id;
@@ -160,6 +181,10 @@
 .hub-stats b{color:#ffd23f;}
 .hub-hatch-btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:#3a2e2a;background:#ffd23f;border:none;border-radius:14px;padding:10px 18px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);font-family:inherit;}
 .hub-hatch-btn:disabled{filter:grayscale(.7);opacity:.55;cursor:default;box-shadow:none;}
+.hub-gen-tabs{display:flex;gap:8px;padding:0 18px 10px;}
+.hub-gen-tab{flex:0 0 auto;font-family:inherit;font-size:14px;color:#9ab;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:999px;padding:7px 18px;cursor:pointer;transition:all .12s;}
+.hub-gen-tab:hover{color:#e8e8e8;border-color:rgba(255,210,63,.4);}
+.hub-gen-tab.active{color:#3a2e2a;background:#ffd23f;border-color:#ffd23f;font-weight:700;}
 .hub-dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;padding:8px 14px 16px;overflow-y:auto;}
 .hub-cell{position:relative;background:#0f3460;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;gap:4px;border:1px solid rgba(255,255,255,.06);min-height:90px;}
 .hub-cell.has{border-color:rgba(255,210,63,.35);cursor:pointer;}
@@ -204,6 +229,10 @@
 <div class="hub-overlay" id="hubDexModal">
   <div class="hub-dex-card">
     <div class="hub-dh"><h2>📖 포켓몬 도감</h2><button class="hub-x" data-act="closeDex">닫기 ✕</button></div>
+    <div class="hub-gen-tabs">
+      <button class="hub-gen-tab" data-gen="1">1세대</button>
+      <button class="hub-gen-tab" data-gen="2">2세대</button>
+    </div>
     <div class="hub-hatch-row">
       <div class="hub-stats"><span id="hubDexCount">0 / 151</span> · 부화가능 <b id="hubAvail">0</b>점 / 총 <b id="hubTotal">0</b>점</div>
       <button class="hub-hatch-btn" id="hubHatchBtn" data-act="hatch">🥚 부화하기 (${HATCH_COST}점)</button>
@@ -214,7 +243,7 @@
 <div class="hub-overlay" id="hubHatchModal">
   <div class="hub-detail-card"><div class="hub-egg-stage">
     <svg id="hubEgg" width="120" height="140" viewBox="0 0 120 140">
-      <ellipse cx="60" cy="75" rx="46" ry="58" fill="#f5f0e0" stroke="#d4c89a" stroke-width="3"/>
+      <ellipse id="hubEggBody" cx="60" cy="75" rx="46" ry="58" fill="#f5f0e0" stroke="#d4c89a" stroke-width="3"/>
       <ellipse cx="48" cy="55" rx="10" ry="14" fill="rgba(255,255,255,0.5)" transform="rotate(-20,48,55)"/>
     </svg>
     <div>알에서 무엇이 나올까요?</div>
@@ -244,6 +273,12 @@
         else if(e.target.id==='hubDetailModal') closeDetail();
         return;
       }
+      const genBtn=e.target.closest('.hub-gen-tab');
+      if(genBtn){
+        const g=Number(genBtn.getAttribute('data-gen'))||1;
+        if(g!==state.gen){ state.gen=g; save(); renderDex(); refreshHatchUI(); syncGenTabs(); }
+        return;
+      }
       const act=e.target.getAttribute('data-act');
       if(act==='closeDex') closeDex();
       else if(act==='closeDetail') closeDetail();
@@ -256,17 +291,29 @@
     });
   }
 
+  function genCaughtCount(gen){
+    const g=GENS[gen]||GENS[1]; let n=0;
+    for(let id=g.lo;id<=g.hi;id++){ if(state.caught[id]) n++; }
+    return n;
+  }
   function refreshHatchUI(){
-    const c=document.getElementById('hubDexCount'); if(c) c.textContent=caughtCount()+' / 151';
+    const g=GENS[state.gen]||GENS[1];
+    const c=document.getElementById('hubDexCount'); if(c) c.textContent=genCaughtCount(state.gen)+' / '+(g.hi-g.lo+1);
     const a=document.getElementById('hubAvail'); if(a) a.textContent=available();
     const t=document.getElementById('hubTotal'); if(t) t.textContent=totalScore();
     const b=document.getElementById('hubHatchBtn'); if(b) b.disabled=available()<HATCH_COST;
+  }
+  function syncGenTabs(){
+    document.querySelectorAll('.hub-gen-tab').forEach(btn=>{
+      btn.classList.toggle('active', Number(btn.getAttribute('data-gen'))===state.gen);
+    });
   }
 
   function renderDex(){
     const grid=document.getElementById('hubDexGrid'); if(!grid) return;
     grid.innerHTML='';
-    for(let id=1;id<=151;id++){
+    const g=GENS[state.gen]||GENS[1];
+    for(let id=g.lo;id<=g.hi;id++){
       const has=state.caught[id];
       const maxed=has>=MAX_DUP;
       const cell=document.createElement('div'); cell.className='hub-cell'+(has?' has':'')+(maxed?' max':'');
@@ -280,12 +327,17 @@
     }
   }
 
-  function openDex(){ ensureUI(); renderDex(); refreshHatchUI(); document.getElementById('hubDexModal').classList.add('show'); }
+  function openDex(){ ensureUI(); syncGenTabs(); renderDex(); refreshHatchUI(); document.getElementById('hubDexModal').classList.add('show'); }
   function closeDex(){ const m=document.getElementById('hubDexModal'); if(m) m.classList.remove('show'); }
 
   function doHatch(){
     if(available()<HATCH_COST){ toast('점수가 부족해요! 게임에서 점수를 모아보세요. (10점 필요)'); return; }
     const svg=document.getElementById('hubEgg');
+    const body=document.getElementById('hubEggBody');
+    if(body){ // 2세대 알은 보랏빛으로 구분
+      if(state.gen===2){ body.setAttribute('fill','#e7def4'); body.setAttribute('stroke','#b69ad8'); }
+      else{ body.setAttribute('fill','#f5f0e0'); body.setAttribute('stroke','#d4c89a'); }
+    }
     document.getElementById('hubHatchModal').classList.add('show');
     svg.classList.remove('hub-shake','hub-flash'); void svg.offsetWidth; svg.classList.add('hub-shake');
     setTimeout(()=>{
@@ -294,6 +346,7 @@
         const id=hatch();
         document.getElementById('hubHatchModal').classList.remove('show');
         renderDex(); refreshHatchUI();
+        if(id==='done'){ toast('🎉 '+state.gen+'세대 포켓몬을 다 모았어요! 도감 완성!'); return; }
         if(id!=null) openDetail(id,{hatched:true});
       },500);
     },500);
@@ -314,7 +367,7 @@
     const actions=document.getElementById('hubDmActions'); actions.innerHTML='';
     if(opts.hatched){
       const again=document.createElement('button'); again.className='hub-hatch-btn'; again.textContent='한 번 더 🥚';
-      again.disabled=available()<HATCH_COST;
+      again.disabled=available()<HATCH_COST || pickHatch(state.gen)==null;
       again.onclick=()=>{ closeDetail(); doHatch(); };
       actions.appendChild(again);
     }
