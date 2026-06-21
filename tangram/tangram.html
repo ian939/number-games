@@ -704,7 +704,7 @@ function trySnap(p) {
   let best = null, bestd = 1e9;
   for (const s of slots) {
     if (s.filledBy && s.filledBy !== p) continue;            // 다른 조각이 이미 채움
-    if (Math.hypot(s.x - p.x, s.y - p.y) > (hardMode ? POS_TOL * 1.5 : POS_TOL * 2)) continue;
+    if (Math.hypot(s.x - p.x, s.y - p.y) > (hardMode ? POS_TOL * 0.9 : POS_TOL * 1.2)) continue;
     if (!piecesFitsSlot(p, s)) continue;
     const cd = Math.hypot(s.x - p.x, s.y - p.y);
     if (cd < bestd) { bestd = cd; best = s; }
