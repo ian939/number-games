@@ -1154,6 +1154,14 @@ document.getElementById('map-free').addEventListener('click', () => {
   mapScreen.style.display = 'none';
   loadPuzzle(fi >= 0 ? fi : 0);
 });
+// [임시] 좌표 찍기: 지도 빈 곳을 탭하면 그 위치의 비율 좌표를 상단에 표시
+document.getElementById('map-wrap').addEventListener('click', (e) => {
+  if (e.target.closest('.node') || e.target.closest('.pika-marker')) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = ((e.clientX - r.left) / r.width).toFixed(3);
+  const y = ((e.clientY - r.top) / r.height).toFixed(3);
+  document.getElementById('map-prog').textContent = '📍 ' + x + ', ' + y;
+});
 // 일반 ↔ 어려움 모드 전환(지도 다시 그리기)
 document.getElementById('map-hard').addEventListener('click', () => {
   hardMode = !hardMode;
